@@ -1,0 +1,15 @@
+version: "3.3"
+services:
+    python-server:
+      container_name: python-server
+      # Crea la imagen con el archivo Dockerfile de esta misma carpeta
+      build: .
+      restart: always
+      volumes:
+        - $PWD/app:/usr/src/app
+      ports:
+        - "8085:8085"
+      networks:
+        - db-net
+networks:
+  db-net:

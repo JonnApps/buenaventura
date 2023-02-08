@@ -1,0 +1,85 @@
+{% extends 'menu.html' %}
+
+{% block content %}
+    {% if grade %}
+        <div class="row" style="padding: 50px 0px 0px 0px;">
+            <div class="col">
+                <h4>Videos accesibles por {{grade}} </h4><br>
+            </div>
+        </div>
+
+        <div class="row" align="center" style="padding: 50px 0px 0px 0px;" >
+            <div class="col">
+                <div class="”video-responsive”">
+                        <iframe  src="https://www.youtube.com/embed/Zr_Aq7wFid0" width="90%" height="90%" frameborder="0" allowfullscreen="allowfullscreen"> </iframe>
+                </div>
+            </div>
+            <div class="col" align="center" >
+                <div class="”video-responsive”">
+                        <iframe  src="https://www.youtube.com/embed/jBixeitoac0" width="90%" height="90%" frameborder="0" allowfullscreen="allowfullscreen"> </iframe>
+                </div>
+            </div>
+            <div class="col" align="center" >
+                <div class="”video-responsive”">
+                        <iframe  src="https://www.youtube.com/embed/BmRwmeFy6u8" width="90%" height="90%" frameborder="0" allowfullscreen="allowfullscreen"> </iframe>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col" align="center" >
+                <div class="”video-responsive”">
+                        <iframe  src="https://www.youtube.com/embed/FAwDD-K6NsA" width="90%" height="90%" frameborder="0" allowfullscreen="allowfullscreen"> </iframe>
+                </div>
+            </div>
+            <div class="col" align="center" >
+                <div class="”video-responsive”">
+                        <iframe  src="https://www.youtube.com/embed/1EikfshkvbI" width="90%" height="90%" frameborder="0" allowfullscreen="allowfullscreen"> </iframe>
+                </div>
+            </div>
+            <div class="col" align="center" >
+                <div class="”video-responsive”">
+                        <iframe  src="https://www.youtube.com/embed/FyJaqqR03-w" width="90%" height="90%" frameborder="0" allowfullscreen="allowfullscreen"> </iframe>
+                </div>
+            </div>
+        </div>
+        <div class="row" style="padding: 50px 0px 0px 0px;" >
+            <div class="col" align="center">
+                 <!-- Carousel -->
+                 <div id="demo" class="carousel slide" data-bs-ride="carousel">
+                    <!-- Indicators/dots -->
+                    <div class="carousel-indicators">
+                    {%for i in range(290, 404)%}
+                    <button type="button" data-bs-target="#demo" data-bs-slide-to="{{i-289}}" {% if i == 290 %}class="active"{% endif %}></button>
+                    {%endfor%}
+                    </div>
+                    <!-- The slideshow/carousel -->
+                    <div class="carousel-inner">
+                    {%for i in range(290, 404)%}
+                        <div class="carousel-item {% if i == 290 %}active{% endif %}">
+                            <img src="https://dev.jonnattan.com/logia/images/DSC00{{i}}.JPG" alt="Logia" class="d-block w-100">
+                        </div>
+                    {%endfor%}
+                    </div>
+                    <!-- Left and right controls/icons -->
+                    <button class="carousel-control-prev" type="button" data-bs-target="#demo" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon"></span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#demo" data-bs-slide="next">
+                    <span class="carousel-control-next-icon"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="row" style="padding: 100px 0px 0px 0px;">
+            <div class="col">
+                <div class="alert alert-danger" role="alert">
+                    <strong>Estimado usuario, ud no tiene permiso para ver
+                        este contenido, dirijase al <a href="https://www.granlogiadechile.cl/index.php/login-user">sitio de la Gran Logia</a>
+                        para solicitar o recuperar sus credenciales de acceso. </strong> <br>
+                        Recuerde que su nombre de usuario es su rut 
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}
