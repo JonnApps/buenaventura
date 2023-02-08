@@ -101,13 +101,12 @@ def unauthorized():
 #===============================================================================
 # Se checkea el estado del servidor completo para reportar
 #===============================================================================
-@app.route('/checkall', methods=['GET', 'POST'])
-@auth.login_required
+@app.route('/checksystem',  methods=('GET', 'POST'))
 def checkProccess():
     checker = Checker()
-    json = checker.getInfo()
+    json, status = checker.getInfo()
     del checker
-    return jsonify(json)
+    return jsonify(json), status
 
 # ===============================================================================
 # INTRANET
