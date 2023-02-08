@@ -2,7 +2,7 @@
 
 **/*.crt
 **/*.key
-**/*.log
+**/*.log*
 
 
 __pycache__/
