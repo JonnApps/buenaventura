@@ -237,7 +237,10 @@ def rl_aniversario(subpath):
 @app.route('/home', methods=['POST','GET','PUT'])
 def rl_aniversario_home():
         return render_template( 'logia.html' )
-
+# ===============================================================================
+@app.route('/agape', methods=['POST','GET','PUT'])
+def agapes():
+        return render_template( 'agape.html' )
 # ===============================================================================
 # imagenes estaticas del sistema
 # ===============================================================================
