@@ -1,0 +1,50 @@
+{% extends 'menu.html' %}
+
+{% block addhead %}
+<script src="https://js.hcaptcha.com/1/api.js" async defer> </script>
+<script language="JavaScript" type="text/javascript" src="https://logia.buenaventuracadiz.com/static/js/logia.js"
+  integrity="sha384-9okqXD98fap8vA2xwV24xmQZggQWjqC+g9wrYWxC5IM9ngVzpuD+kSU203Lvdd6W">
+  </script>
+
+<script type="text/javascript">
+  function open() {
+    console.info('############ OPEN')
+  }
+  function err() {
+    console.info('############ ERR')
+  }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container" max-width="sm" style="padding:5px 0px 0px 0px; width: 300px ;">
+  <form class="row g-3" action="/page/login/verify" method="POST" autocomplete="off">
+    <div class="row" style="padding:10px 0px 0px 0px;">
+      <div class="col">
+        <div class="mb-3">
+          <label for="rut" class="form-label">Rut</label>
+          <input type="text" class="form-control" id="rut" placeholder="Rut con guión y puntos" name="username">
+          <label for="pass" class="form-label">Password</label>
+          <input type="password" class="form-control" id="pass" placeholder="Password de GLCH" name="password">
+          <input type="text" hidden class="form-control" id="csrf_token" readonly name="csrf_token"
+            value="{{csrf_token()}}">
+        </div>
+        <div class="h-captcha" data-callback="tokenEval" data-open-callback="open" data-error-callback="err"
+          data-sitekey="{{captcha_key}}"></div>
+        <div class="mb-3" align="center">
+          <input id="btnNext" disabled type="submit"  class="btn btn-success" value="Ingresar">
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div class="row" style="padding:10px 0px 0px 0px;">
+    <div class="alert alert-success" role="alert">
+      Las credenciales son aquellas obtenidas en la GLCh. Dirijase al <a href="https://www.granlogiadechile.cl/index.php/login-user">sitio de la Gran Logia</a>
+      para solicitar o recuperar sus credenciales de acceso.
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

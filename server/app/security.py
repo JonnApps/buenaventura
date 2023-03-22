@@ -13,46 +13,51 @@ except ImportError:
     sys.exit(-2)
 
 class Security() :
-
+    api_key = os.environ.get('APIKEY_SERVER','None')
     #================================================================================================
     # verificaci'on de usuarios 
     #================================================================================================
     def verifiyUserPass( self, username, password ) :
         logging.info("Rescato password para usuario: " + str(username) )
-        api_key = 'd0b39697973b41a4bb1e0bc3e0eb625c'
         url = 'https://dev.jonnattan.com/logia/usergl/login'
-        headers = {'API-Key': api_key, 'Content-Type': 'application/json' }
-        user = None
-        # valores por defecto
-        data_response = {'statusCode': 500, 'statusDescription': 'Error interno Gw' }
+        headers = {'API-Key': str(self.api_key), 'Content-Type': 'application/json' }
+        user = 'Desconocido'
+        grade = 0
+        name = None
+        message = 'Error de ejecución del servicio'
         try :
-            m1 = time.monotonic_ns()
-            cipher = Cipher()
-            dato = username + '|||' + password
-            data_cipher = cipher.aes_encrypt( dato )
-            data_json = {
-                'data' : str(data_cipher.decode('UTF-8'))
-            }
-            resp = None
-            logging.info("POST To URL: " + url )
-            resp = requests.post(url, data = json.dumps(data_json), headers = headers, timeout = 40)
-            diff = time.monotonic_ns() - m1;
-            logging.info('Response ' + str( diff )  + ' nanoseg' )
-            if resp.status_code == 200 or resp.status_code == 201 :
-                data_response = resp.json()
-                user = str( data_response['user'] )
-            logging.info("Response Message: " + str( data_response['message'] ) + ' User: ' + user )
+            if len(str(user)) > 0 and len(str(password)) > 0 :
+                m1 = time.monotonic()
+                cipher = Cipher()
+                dato = username + '|||' + password
+                data_cipher = cipher.aes_encrypt( dato )
+                data_json = {
+                    'data' : str(data_cipher.decode('UTF-8'))
+                }
+                resp = None
+                logging.info("POST To URL: " + url )
+                resp = requests.post(url, data = json.dumps(data_json), headers = headers, timeout = 5)
+                diff = time.monotonic() - m1;
+                logging.info('Response ' + str( diff )  + ' seg' )
+                if resp.status_code == 200 or resp.status_code == 201 :
+                    data_response = resp.json()
+                    user = str( data_response['user'] )
+                    grade = str( data_response['grade'] ) 
+                    name = str( data_response['name'] ) 
+                    message = data_response['message'] 
+            else :
+                logging.info('No cumplen con largos username['+str(username)+'] o pass['+str(password)+']')
         except Exception as e:
             print("ERROR POST:", e)
-        return user
+        logging.info(' Message: [' + str( message ) +'] User[' + user + ']' )
+        return user, grade, name
     #================================================================================================
     # Obtengo el grado del QH
     #================================================================================================
     def getGrade( self, username ) :
         logging.info('Intento obtener grado de ' + str(username) )
-        api_key = 'd0b39697973b41a4bb1e0bc3e0eb625c'
         url = 'https://dev.jonnattan.com/logia/usergl/grade'
-        headers = {'API-Key': api_key, 'Content-Type': 'application/json' }
+        headers = {'API-Key': str(self.api_key), 'Content-Type': 'application/json' }
         grade = 0
         try :
             m1 = time.monotonic_ns()
@@ -64,7 +69,7 @@ class Security() :
             }
             resp = None
             logging.info("POST To URL: " + url )
-            resp = requests.post(url, data = json.dumps(data_json), headers = headers, timeout = 40)
+            resp = requests.post(url, data = json.dumps(data_json), headers = headers, timeout = 5)
             diff = time.monotonic_ns() - m1;
             logging.info('Response ' + str( diff )  + ' nanoseg' )
             if resp.status_code == 200 :
@@ -83,9 +88,8 @@ class Security() :
     def accessValidate(self, username, grade) :
         access = False
         logging.info('Valido acceso a recurso de ' + str(grade) + ' a ' + str(username) )
-        api_key = 'd0b39697973b41a4bb1e0bc3e0eb625c'
         url = 'https://dev.jonnattan.com/logia/usergl/access'
-        headers = {'API-Key': api_key, 'Content-Type': 'application/json' }
+        headers = {'API-Key': str(self.api_key), 'Content-Type': 'application/json' }
         try :
             m1 = time.monotonic_ns()
             cipher = Cipher()
@@ -114,9 +118,8 @@ class Security() :
     #================================================================================================
     def getUrlPdf( self, grade, name, user ) :
         logging.info('Intento obtener documento ' + str(name) )
-        api_key = 'd0b39697973b41a4bb1e0bc3e0eb625c'
         url = 'https://dev.jonnattan.com/logia/docs/url'
-        headers = {'API-Key': api_key, 'Content-Type': 'application/json' }
+        headers = {'API-Key': str(self.api_key), 'Content-Type': 'application/json' }
         doc_url = ''
         try :
             m1 = time.monotonic_ns()
@@ -149,9 +152,11 @@ class Cipher() :
     aes_key = ''
     algorithm = ''
 
-    def __init__(self, algorithm='aes') :
+    def __init__(self, algorithm='aes', aes_key=None ) :
         self.id = id
-        self.aes_key = 'dRgUkXp2s5v8y/B?E(H+MbQeThVmYq3t' # 256 bit
+        self.aes_key = aes_key
+        if aes_key == None :
+            self.aes_key =  str(os.environ.get('AES_KEY','NO_CAPTCHA_KEY')) # 256 bit
         self.algorithm = algorithm
 
     def __del__(self):

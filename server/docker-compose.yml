@@ -6,9 +6,11 @@ services:
       build: .
       restart: always
       volumes:
-        - $PWD/app:/usr/src/app
+        - $PWD/app:/home/logia/app
       ports:
         - "8085:8085"
+      env_file:
+      - env.prod
       networks:
         - db-net
 networks:

@@ -1,24 +1,30 @@
 FROM python:3
 
-LABEL VERSION=1.0
-LABEL DESCRIPCION="Python Server HTTP"
+LABEL VERSION=1.1
+LABEL DESCRIPCION="Logia Server"
 
-RUN pip install --upgrade pip && \
-    pip3 install requests && \
-    pip3 install pyopenssl  && \
-    pip3 install flask && \
-    pip3 install PyMySQL && \
-    pip3 install datetime && \
-    pip3 install flask_httpauth && \
-    pip3 install python-jose && \
-    pip3 install flask-cors && \
-    pip3 install boto3 && \
-    mkdir -p /usr/src/app
+# variables importantes
+ARG CAPTCHA_KEY
+ARG AES_KEY
+ARG SECRET_KEY_CSRF
+
+ENV FLASK_APP app
+
+RUN addgroup --gid 10101 logia && \
+    adduser --home /home/logia --uid 10100 --gid 10101 --disabled-password logia
+
+USER logia  
+
+COPY requirements.txt /home/logia/requirements.txt
+
+RUN cd /home/logia && \ 
+    mkdir -p /home/logia/.local/bin && \
+    export PATH=$PATH:/home/logia/.local/bin && \
+    pip install --upgrade pip && \
+    pip install -r requirements.txt 
+
+WORKDIR /home/logia/app
 
 EXPOSE 8085
 
-COPY ./app/run.sh /usr/src/app/run.sh
-
-WORKDIR /usr/src/app
-
-CMD [ "/bin/sh", "./run.sh" ]
+CMD [ "python", "http-server.py", "8085"]

@@ -1,4 +1,8 @@
 # Ignore everything
-**
+** 
 
-!app/**
+!app/templates
+!app/static
+!app/*.py
+
+!requirements.txt
