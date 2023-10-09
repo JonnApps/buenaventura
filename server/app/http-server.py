@@ -8,7 +8,6 @@ try:
     import datetime
     import requests
     from flask_cors import CORS
-    from flask_httpauth import HTTPBasicAuth
     from flask_wtf.csrf import CSRFProtect
     from flask import Flask, render_template, make_response, request, redirect, jsonify, send_from_directory
     # Clases personales
@@ -53,7 +52,6 @@ app.config.update( DEBUG=False, SECRET_KEY = str(SECRET_KEY_CSRF), )
 csrf = CSRFProtect()
 csrf.init_app(app)
 
-auth = HTTPBasicAuth( )
 cors = CORS(app, resources={r"/page/*": {"origins": ["logia.buenaventuracadiz.com"]}})
 # ==============================================================================
 # variables globales
@@ -88,26 +86,6 @@ def infoJonnaProccess():
         "Telefono": "(+56) 9 9211 6678",
         "Valle":"Viña del Mar"
     })
-#===============================================================================
-# Metodo solicitado por la biblioteca de autenticaci'on b'asica
-#===============================================================================
-@auth.verify_password
-def verify_password(username, password):
-    user = None
-    if username != None and password != None :
-        basicAuth = Security()
-        user =  basicAuth.verifiyUserPass(username, password)
-        del basicAuth
-    return user
-
-#===============================================================================
-# Implementacion del handler que respondera el error en caso de mala autenticacion
-#===============================================================================
-@auth.error_handler
-def unauthorized():
-    return render_template('more.html', grade=None ), 401
-    # return make_response(jsonify(data), 401)
-
 
 #===============================================================================
 # Se checkea el estado del servidor completo para reportar
@@ -125,13 +103,13 @@ def checkProccess():
 # ===============================================================================
 @app.route('/page/intranet/show/<path:subpath>', methods=['GET'])
 @csrf.exempt
-@auth.login_required
 def intranet_pdf(subpath):
     user_name = None
     request_data = request.headers.get('Referer')
     base_url =  str(request_data)
     url = base_url + '/docs/access_denied.pdf'
     grade_docname = str(subpath)
+    name = None
     logging.info('Solicita Mostrar Documento: ' + grade_docname )
     
     cookie = request.cookies.get('SESION_RL')
@@ -143,12 +121,11 @@ def intranet_pdf(subpath):
         datos = data_str.split('&')
         if len(datos) == 3 :
             user_name = str(datos[0].strip())
+            name = str(datos[2].strip())
         del cipher
     
-    
-    auth_user = auth.current_user()
-    if( auth_user != None and user_name != None ) :
-        logging.info('UserCookie[' + str(user_name)  + '] UserAuth[' + str(auth_user[0]) +']' )
+    if user_name != None :
+        logging.info('UserCookie[' + str(user_name)  + ']' )
 
 
     paths = str(grade_docname).split('/')
@@ -158,14 +135,24 @@ def intranet_pdf(subpath):
         del sec 
     if url == '' :
         url = base_url + '/docs/access_denied.pdf'
-    return render_template( 'show.html', doc=url )
+    return render_template( 'show.html', doc=url, name=name )
 # ===============================================================================
 # LOGIN
 # ===============================================================================
 @app.route('/page/login', methods=['GET'])
 def login():
     logging.info('LOGIN!!')
-    return render_template( 'login.html', captcha_key=str(CAPTCHA_KEY) )
+    response = make_response( render_template( 'login.html', captcha_key=str(CAPTCHA_KEY) ) )
+    response.set_cookie('SESION_RL', '', path='/page', max_age=0, secure=True, httponly = True )
+    return response
+
+# ===============================================================================
+# logout
+# ===============================================================================
+@app.route('/page/logout', methods=['GET'])
+def logout():
+    logging.info('LOGOUT!!')
+    return redirect('/page/login'), 302
 
 # ===============================================================================
 # VALIDATE LOGIN
@@ -186,7 +173,9 @@ def login_verify():
         basic_auth = Security()
         user, grade, name =  basic_auth.verifiyUserPass(username, password)
         del basic_auth
+
     logging.info('Username['+str(user)+'] Grado['+str(grade)+'] Usuario['+str(name)+']' )
+
     if int(grade) > 0 and int(grade) <= 3 :
         documents = Works()
         works, programs = documents.getWorks(grade)
@@ -214,7 +203,7 @@ def login_verify():
     expire_date = datetime.datetime.now()
     expire_date = expire_date + datetime.timedelta(minutes=5)
     # vence en 30 min
-    response.set_cookie('SESION_RL', cookie, path='/page', max_age=1800 )
+    response.set_cookie('SESION_RL', cookie, path='/page', max_age=1800, secure=True, httponly = True )
 
     return response
 
@@ -224,7 +213,6 @@ def login_verify():
 # ===============================================================================
 @app.route('/page/intranet', methods=['GET'])
 @csrf.exempt
-@auth.login_required
 def intranet():
     works = []
     programs = []
@@ -247,16 +235,8 @@ def intranet():
             name = str(datos[2].strip())
         del cipher
     
-    auth_user = auth.current_user()
-    if( auth_user != None and user_name != None ) :
-        logging.info('UserCookie[' + str(user_name)  + '] UserAuth[' + str(auth_user[0]) +']' )
-
-    if( auth_user != None and cookie == None ) :
-        if int(grade) == str(auth_user[1]) and str(auth_user[0]) == user_name and int(grade) == 0:
-            sec = Security()
-            grade = sec.getGrade(auth_user)
-            logging.info('Solicito los docs guadados de grado: ' + str(grade) )
-            del sec
+    if user_name != None :
+        logging.info('UserCookie[' + str(user_name)  +  ']' )
 
     if int(grade) > 0 and int(grade) <= 3 :
         documents = Works()
@@ -265,6 +245,9 @@ def intranet():
             lengthw = len(works) 
             lengthp = len(programs)
         del documents  
+    else :
+        logging.info('Usuario no ha iniciado sesion')
+        return redirect('/page/login'), 302
     
     logging.info('Hay ' + str(lengthw + lengthp) + ' trabajos para ' + str(name) )
 
@@ -284,23 +267,37 @@ def intranet():
 @app.route('/page/intranet/docs/<path:subpath>', methods=['GET'])
 @csrf.exempt
 def show_pdf(subpath):
-    file_path = os.path.join(ROOT_DIR, 'static/docs')
-    paths = str(subpath).split('/')
-    if len(paths) == 2 :
-        username = auth.current_user()
-        logging.info('Usuario: ' + str(username) + ' Solicita documento: ' + paths[1].strip() )
-        sec = Security()
-        accessOk = sec.accessValidate(username, paths[0].strip())
-        del sec
-        if accessOk :
-            return send_from_directory(file_path, paths[1].strip())
+    user_name = None
+    cookie = request.cookies.get('SESION_RL')
+    if cookie != None :
+        cipher = Cipher()
+        data_clear = cipher.aes_decrypt(cookie)
+        data_str = str(data_clear.decode('UTF-8'))
+        datos = data_str.split('&')
+        if len(datos) == 3 :
+            user_name = str(datos[0].strip())
+        del cipher
+
+        file_path = os.path.join(ROOT_DIR, 'static/docs')
+        paths = str(subpath).split('/')
+
+        if len(paths) == 2 :
+            logging.info('Usuario: ' + str(user_name) + ' Solicita documento: ' + paths[1].strip() )
+            sec = Security()
+            accessOk = sec.accessValidate(user_name, paths[0].strip())
+            del sec
+            if accessOk :
+                return send_from_directory(file_path, paths[1].strip())
+    else :
+        logging.info('Usuario no ha iniciado sesion')
+        return redirect('/page/login'), 302
+    
     return send_from_directory(file_path, 'access_denied.pdf')
 
 
 # ===============================================================================
 @app.route('/page/more', methods=['GET'])
 @csrf.exempt
-@auth.login_required
 def more():
     grade = 0
     works = []
@@ -320,18 +317,8 @@ def more():
             name = str(datos[2].strip())
         del cipher
 
-    auth_user = auth.current_user()
-    
-    if( auth_user != None and user_name != None ) :
-        logging.info('UserCookie[' + str(user_name)  + '] UserAuth[' + str(auth_user[0]) +']' )
-
-    if( auth_user != None and cookie == None ) :
-        if int(grade) == str(auth_user[1]) and str(auth_user[0]) == user_name and int(grade) == 0:
-            sec = Security()
-            grade = sec.getGrade(auth_user)
-            logging.info('Solicito los docs guadados de grado: ' + str(grade) )
-            del sec
-
+    if user_name != None :
+        logging.info('UserCookie[' + str(user_name)  + ']' )
 
     if int(grade) > 0 and int(grade) <= 3 :
         if int(grade) == 1 :
@@ -347,16 +334,20 @@ def more():
         if works != None:
             length = len(works) 
             logging.info('Hay ' + str(length) + ' documentos adicionales para grado ' + str(grade) )
-        del documents    
-    return render_template('more.html', grade=grade_name, documents=works, len=length )
+        del documents  
+    else :
+        logging.info('Usuario no ha iniciado sesion')
+        return redirect('/page/login'), 302
+      
+    return render_template('more.html', grade=grade_name, documents=works, len=length, name=name )
 
 @app.route('/page/youtube', methods=['GET'])
 @csrf.exempt
-@auth.login_required
 def youtube():
     grade = 0
     grade_name = None
     user_name = None
+    name = None
 
     cookie = request.cookies.get('SESION_RL')
 
@@ -371,16 +362,8 @@ def youtube():
             name = str(datos[2].strip())
         del cipher
 
-    auth_user = auth.current_user()
-    if( auth_user != None and user_name != None ) :
-        logging.info('UserCookie[' + str(user_name)  + '] UserAuth[' + str(auth_user[0]) +']' )
-
-    if( auth_user != None and cookie == None ) :
-        if int(grade) == str(auth_user[1]) and str(auth_user[0]) == user_name and int(grade) == 0:
-            sec = Security()
-            grade = sec.getGrade(auth_user)
-            logging.info('Solicito los docs guadados de grado: ' + str(grade) )
-            del sec
+    if user_name != None :
+        logging.info('UserCookie[' + str(user_name)  + ']' )
 
     logging.info('Acceso a videos de grado ' + str(grade) )
     if int(grade) > 0 and int(grade) <= 3 :
@@ -392,7 +375,10 @@ def youtube():
             grade_name = 'Tercer Grado'
         else :
             grade_name = None
-    return render_template('youtube.html', grade=grade_name )
+    else :
+        return redirect('/page/login'), 302
+    
+    return render_template('youtube.html', grade=grade_name, name=name )
 
 # ===============================================================================
 # LOGIA
@@ -415,9 +401,18 @@ def home():
     logging.info('HOME !!')
     return render_template( 'logia.html' )
 # ===============================================================================
-@app.route('/page/agape', methods=['POST','GET','PUT'])
-def agape():
-    return render_template( 'agape.html' )
+@app.route('/page/aniversario', methods=['POST','GET','PUT'])
+def aniversario():
+    grade = 1
+    name = 'Anonimo'
+    return render_template( 'aniversario.html', name=name, grade=grade )
+
+# ===============================================================================
+@app.route('/page/reublanca', methods=['POST','GET','PUT'])
+def reublanca():
+    grade = 1
+    name = 'Anonimo'
+    return render_template( 'reublanca.html', name=name, grade=grade )
 
 
 # ==============================================================================
