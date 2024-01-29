@@ -1,5 +1,13 @@
 {% extends 'menu.html' %}
 
+{% block nameqh %} 
+  {% if name %} 
+    <button class="btn btn-sm btn-outline-secondary" type="button"> 
+        <a class="nav-link" href="/page/logout">QH:. {{name}} </a> 
+     </button> 
+  {% endif %} 
+{% endblock %}
+
 {% block content %}
   <div class="row">
     <div class="col">

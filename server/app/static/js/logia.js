@@ -3,44 +3,52 @@ function getNumberRandom(n = 10) {
   return Math.floor(Math.random() * value) + 1;
 }
 //================================================================================
-// genera un UUID
+// valida el rut
 //================================================================================
-function generateUUID() {
-  var d = new Date().getTime();
-  var d2 = ((typeof performance !== 'undefined') && performance.now && (performance.now() * 1000)) || 0;
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    var r = Math.random() * 16;
-    if (d > 0) {
-      r = (d + r) % 16 | 0;
-      d = Math.floor(d / 16);
-    } else {
-      r = (d2 + r) % 16 | 0;
-      d2 = Math.floor(d2 / 16);
-    }
-    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-  });
+
+const input_rut = document.getElementById('username');
+input_rut.addEventListener('input_rut', rutEval);
+
+async function rutEval( rutCompleto ) {
+  if (!/^[0-9]+-[0-9kK]{1}$/.test(rutCompleto))
+      return false;
+  var tmp = rutCompleto.split('-');
+  var digv = tmp[1];
+  var rut = tmp[0];
+  if (digv == 'K') digv = 'k';
+  return (Fn.dv(rut) == digv);
 }
 
-//================================================================================
-// genera la fecha actual en formato solicitado
-//================================================================================
-function getDateContract(mode = 'd-m-a') {
-  d = new Date()
-  year = String(d.getUTCFullYear())
-  month = String(d.getUTCMonth() + 1)
-  month = d.getUTCMonth() < 10 ? ('0' + month) : month
-  day = String(d.getDate())
-  day = d.getDate() < 10 ? ('0' + day) : day
-  ret = year + month + day
-  if (mode === 'd-m-a')
-    ret = day + '-' + month + '-' + year
-  if (mode === 'a-m-d')
-    ret = year + '-' + month + '-' + day
-  return ret
+async function dv(T) {
+  var M = 0,
+      S = 1;
+  for (; T; T = Math.floor(T / 10))
+      S = (S + T % 10 * (9 - M++ % 6)) % 11;
+  return S ? S - 1 : 'k';
 }
 
+$("#login").submit( function(evt) {
+  let rut = $("#username").val();
+  if (rut) {
+      if (rutEval(rut)) {
+          return;
+      } else {
+          evt.preventDefault();
+          alert("Formato de RUT debe ser xxxxxxxx-x sin puntos");
+      }
+  } else {
+      console.log("validarrut:");
+      if (Fn.validaRut(rutShipping)) {
+          return;
+      } else {
+          evt.preventDefault();
+          alert("Formato de RUT en dirección de envio debe ser xxxxxxxx-x sin puntos");
+      }
+  }
+});
+
 //================================================================================
-// genera un UUID
+// evalua el token del recapcha
 //================================================================================
 async function tokenEval( e )  {
   console.info('############ Token: ', e)

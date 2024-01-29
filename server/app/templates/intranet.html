@@ -1,6 +1,14 @@
 
 {% extends 'menu.html' %}
 
+{% block nameqh %} 
+  {% if data.name %} 
+    <button class="btn btn-sm btn-outline-secondary" type="button"> 
+        <a class="nav-link" href="/page/logout">QH:. {{data.name}} </a> 
+     </button> 
+  {% endif %} 
+{% endblock %}
+
 {% block content %}
   {% if data.grade >=1 and data.grade <= 3 %}
   <div class="row">
@@ -72,13 +80,10 @@
     </div>
   </div>
   {% else %}
-  <div class="row" style="padding: 100px 0px 0px 0px;">
+  <div class="row" style="padding: 10px 0px 0px 0px;">
     <div class="col">
       <div class="alert alert-danger" role="alert">
-        <strong>Estimado usuario, ud no tiene permiso para ver
-            este contenido, dirijase al <a href="https://www.granlogiadechile.cl/index.php/login-user">sitio de la Gran Logia</a>
-            para solicitar o recuperar sus credenciales de acceso. </strong> <br>
-            Recuerde que su nombre de usuario es su rut 
+        Si no recuerda sus credenciales dirijase al sitio oficial de la <a href="https://www.granlogiadechile.cl/" target="_blank" rel="noopener noreferrer">Gran Logia de Chile</a> para recuperarlas. Si sólo recuerda su mail de registro puede crear una nueva clave presionando directamente <a href="https://www.mimasoneria.cl/web/reset_password" target="_blank" rel="noopener noreferrer">acá</a>.
       </div>
     </div>
   </div>

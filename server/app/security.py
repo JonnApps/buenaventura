@@ -36,7 +36,7 @@ class Security() :
                 }
                 resp = None
                 logging.info("POST To URL: " + url )
-                resp = requests.post(url, data = json.dumps(data_json), headers = headers, timeout = 5)
+                resp = requests.post(url, data = json.dumps(data_json), headers = headers, timeout = 60)
                 diff = time.monotonic() - m1;
                 logging.info('Response ' + str( diff )  + ' seg' )
                 if resp.status_code == 200 or resp.status_code == 201 :
@@ -116,15 +116,15 @@ class Security() :
     #================================================================================================
     # Obtiene la URL del documento PDF
     #================================================================================================
-    def getUrlPdf( self, grade, name, user ) :
-        logging.info('Intento obtener documento ' + str(name) )
+    def getUrlPdf( self, grade, namedoc, user ) :
+        logging.info('Intento obtener documento ' + str(namedoc) )
         url = 'https://dev.jonnattan.com/logia/docs/url'
         headers = {'API-Key': str(self.api_key), 'Content-Type': 'application/json' }
         doc_url = ''
         try :
             m1 = time.monotonic_ns()
             cipher = Cipher()
-            dato = str(name)+ ';' + str(grade) + ';' + str(user)
+            dato = str(namedoc)+ ';' + str(grade) + ';' + str(user)
             data_cipher = cipher.aes_encrypt( dato )
             data_json = {
                 'data' : str(data_cipher.decode('UTF-8'))
