@@ -1,0 +1,48 @@
+{% extends 'menu.html' %}
+
+{% block addhead %}
+  <script src="https://js.hcaptcha.com/1/api.js" async defer> </script>
+  <script language="JavaScript" type="text/javascript" src="https://logia.buenaventuracadiz.com/static/js/logia.js"
+    integrity="sha384-9rmDlwLT0K+aVmuBUkSaRtY9yde75C/s8sS3u5p/zmtDUmGxJep9Jg+omqPKXvKd">
+    </script>
+
+  <script type="text/javascript">
+    function open() {
+      console.info('############ OPEN')
+    }
+    function err() {
+      console.info('############ ERR')
+    }
+  </script>
+{% endblock %}
+
+{% block content %}
+<div class="container" max-width="sm" style="padding:5px 0px 0px 0px; width: 300px ;">
+  <form class="row g-3" id="login" name="login" action="/page/login/verify" method="POST" autocomplete="off">
+    <div class="row" style="padding:10px 0px 0px 0px;">
+      <div class="col">
+        <div class="mb-3">
+          <label for="username" class="form-label">Email</label>
+          <input type="text" class="form-control" id="username" placeholder="Email de registro en GLCh" name="username">
+          <label for="pass" class="form-label">Password</label>
+          <input type="password" class="form-control" id="pass" placeholder="Password de registro en GLCH" name="password">
+          <input type="text" hidden class="form-control" id="csrf_token" readonly name="csrf_token" value="{{csrf_token()}}">
+        </div>
+        <div class="h-captcha" data-callback="tokenEval" lh="es" data-open-callback="open" data-error-callback="err"
+          data-sitekey="{{captcha_key}}"></div>
+        <div class="mb-3" align="center">
+          <input id="btnNext" disabled type="submit" class="btn btn-success" value="Ingresar">
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div class="row" style="padding:10px 0px 0px 0px;">
+    <div class="alert alert-success" role="alert">
+      Si no recuerda sus credenciales dirijase al sitio oficial de la <a href="https://www.mimasoneria.cl/" target="_blank" rel="noopener noreferrer">Gran Logia de Chile</a> para recuperarlas. Si sólo recuerda su mail de registro puede crear una nueva clave presionando directamente <a href="https://www.mimasoneria.cl/web/reset_password" target="_blank" rel="noopener noreferrer">acá</a>.
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

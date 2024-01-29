@@ -10,7 +10,7 @@
         integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
     
     <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static', filename='styles/mainpage.css') }}">
-
+    {% block addhead %} {% endblock %}
 </head>
 
 <body>
@@ -27,7 +27,7 @@
             <div class="col">
                 <nav class="navbar navbar-expand-lg navbar-light bg-light">
                     <div class="container-fluid">
-                        <a class="navbar-brand" href="https://logia.buenaventuracadiz.com/home">Principal</a>
+                        <a class="navbar-brand" href="https://logia.buenaventuracadiz.com/page/home">Principal</a>
                         
                         <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                             data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
@@ -40,42 +40,45 @@
                                     <a class="nav-link active" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Consigue los archivos PDF de los trabajos de nuestra logia"
                                         href="{{ url_for('intranet') }}">Intranet</a>
                                 </li>
-                                <li class="nav-item active">
-                                    <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Documentos que pueden ayudar a realizar trabajos"
-                                        href="{{ url_for('more') }}">Material Adicional</a>
+                                <li class="nav-item">
+                                    <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Información de los Ágapes"
+                                        href="{{ url_for('aniversario') }}">Tenida Aniversario</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Información de los Ágapes"
+                                        href="{{ url_for('reublanca') }}">Reunión Blanca</a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Videos y Fotografias de nuestra logia y los QQHH"
-                                    href="{{ url_for('youtube') }}" >Youtube</a>
+                                    href="{{ url_for('youtube') }}" >Multimedia</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Documentos que pueden ayudar a realizar trabajos"
+                                        href="{{ url_for('more') }}">Material Adicional</a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Dirigete al blog de nuestra fundación, con todos los documentos relacionados"
                                         href="https://www.buenaventuracadiz.com" target="_blank" rel="noopener noreferrer">Fundación</a>
                                 </li>
-                                <!-- li class="nav-item dropdown">
-                  <a class="nav-link dropdown-toggle" href="#opciones" id="navbarDropdown" role="button"
-                    data-bs-toggle="dropdown" aria-expanded="false">
-                    Proximos Eventos
-                  </a>
-                  <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                    <li><a class="dropdown-item" href="https://logia.buenaventuracadiz.com/aniversario/ta">Tenida
-                        Aniversario</a></li>
-                    <li><a class="dropdown-item" href="https://logia.buenaventuracadiz.com/aniversario/rb">Reunión
-                        Blanca</a></li -->
-                            </ul>
-                            </li>
                             </ul>
                         </div>
                     </div>
+                    <div style="text-align:right; padding:0px 0px 0px 0px; border: none;">
+                        {% block nameqh %} {% endblock %} 
+                    </div>
+                            
                 </nav>
             </div>
         </div>
     </div>
     <!-- padding: arriba abajo izq der -->
-    <div class="container" max-width="sm" style="padding:10px 0px 0px 0px; border: none;"> 
+    <div id="main" class="container" max-width="sm" style="padding:10px 0px 0px 0px; border: none;"> 
         {% block content %} {% endblock %}
     </div>
-
+    <div id="footer" class="container" max-width="sm" style="text-align:center; padding:50px 0px 0px 0px; border: none;" >
+        <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" 
+        title="Creado por Jonnattan G" href="http://dev.jonnattan.com" target="_blank" rel="noopener noreferrer"> &copy; Copyright 2023 by jonnattan.com</a>. 
+    </div>
 </body>
 
 </html>

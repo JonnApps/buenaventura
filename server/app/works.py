@@ -16,7 +16,7 @@ except ImportError:
 
 class Works() :
     db = None
-    host = 'dev.jonnattan.com'
+    host = 'api.jonnattan.online'
     user = 'logia'
     password = 'RL188#2022'
     database = 'gral-purpose'
