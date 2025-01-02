@@ -3,46 +3,33 @@ function getNumberRandom(n = 10) {
   return Math.floor(Math.random() * value) + 1;
 }
 //================================================================================
-// valida el rut
+// valida mail
 //================================================================================
-
-const input_rut = document.getElementById('username');
-input_rut.addEventListener('input_rut', rutEval);
-
-async function rutEval( rutCompleto ) {
-  if (!/^[0-9]+-[0-9kK]{1}$/.test(rutCompleto))
-      return false;
-  var tmp = rutCompleto.split('-');
-  var digv = tmp[1];
-  var rut = tmp[0];
-  if (digv == 'K') digv = 'k';
-  return (Fn.dv(rut) == digv);
+const email_input = document.getElementById('username');
+if (email_input) {
+  email_input.addEventListener('input', emailEval);
 }
 
-async function dv(T) {
-  var M = 0,
-      S = 1;
-  for (; T; T = Math.floor(T / 10))
-      S = (S + T % 10 * (9 - M++ % 6)) % 11;
-  return S ? S - 1 : 'k';
+async function emailEval( rutCompleto ) {
+  var tmp = rutCompleto.split('@');
+  if (tmp.length == 2) {  
+    var dominio = tmp[1];
+    var values = dominio.split('.');
+    if (values.length == 2) {
+        if (values[0].length > 0 && values[1].length > 0) return true;
+    }
+  }
+  return false;
 }
 
-$("#login").submit( function(evt) {
-  let rut = $("#username").val();
-  if (rut) {
-      if (rutEval(rut)) {
+$("#btnIngresar").submit( function(evt) {
+  let mail = $("#username").val();
+  if (mail) {
+      if (emailEval(mail)) {
           return;
       } else {
           evt.preventDefault();
-          alert("Formato de RUT debe ser xxxxxxxx-x sin puntos");
-      }
-  } else {
-      console.log("validarrut:");
-      if (Fn.validaRut(rutShipping)) {
-          return;
-      } else {
-          evt.preventDefault();
-          alert("Formato de RUT en dirección de envio debe ser xxxxxxxx-x sin puntos");
+          alert("Formato de mail incorrecto");
       }
   }
 });
@@ -50,21 +37,21 @@ $("#login").submit( function(evt) {
 //================================================================================
 // evalua el token del recapcha
 //================================================================================
-async function tokenEval( e )  {
+async function captchaValueToken( e )  {
   console.info('############ Token: ', e)
   var dataTx = {
     response: e
   }
   console.info('DataTx: ', JSON.stringify(dataTx))
   // Alerta 
-  document.getElementById("btnNext").disabled = true
+  document.getElementById("btnIngresar").disabled = true
 
-  response = await fetch('https://logia.buenaventuracadiz.com/page/hcaptcha', {
+  response = await fetch('https://logia.buenaventuracadiz.cl/bcp/hcaptcha', {
     method: 'POST', 
     mode: 'cors', 
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': 'logia.buenaventuracadiz.com',
+      'Access-Control-Allow-Origin': 'logia.buenaventuracadiz.cl',
     },
     body: JSON.stringify(dataTx) 
   }).catch(error => {
@@ -74,7 +61,7 @@ async function tokenEval( e )  {
   if (response.ok && response.status == 200) {        
     dataRx = await response.json()
     console.info('DataRx: ', JSON.stringify(dataRx))
-    document.getElementById("btnNext").disabled = !dataRx.success
+    document.getElementById("btnIngresar").disabled = !dataRx.success
   } else {
     console.warn('Response: ', response)
   }

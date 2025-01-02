@@ -3,7 +3,7 @@
 {% block nameqh %} 
   {% if name %} 
     <button class="btn btn-sm btn-outline-secondary" type="button"> 
-        <a class="nav-link" href="/page/login">QH:. {{name}} </a> 
+        <a class="nav-link" href="/bcp/logout">QH:. {{name}} </a> 
      </button> 
   {% endif %} 
 {% endblock %}
@@ -19,7 +19,7 @@
         {%for i in range(0, len)%}
                 <div class="col">
                     <div class="card" style="width: 18rem; background-color: rgb(249, 249, 249);">
-                        <img class="card-img-top" src="{{ url_for('static', filename=documents[i].small_photo) }}" width="100" height="100" alt="{{documents[i].small_photo}}">
+                        <img class="card-img-top" src="{{documents[i].small_photo}}" alt="{{documents[i].small_photo}}" width="100" height="100" alt="{{documents[i].small_photo}}">
                         <div class="card-body">
                             <h5 class="card-title">{{ documents[i].title }}</h5>
                             <p class="card-text">{{ documents[i].description }} <br>

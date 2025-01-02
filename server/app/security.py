@@ -5,22 +5,41 @@ try:
     import time
     import json
     import requests
-    from jose import jwe
+    from Crypto.Cipher import AES
+    import base64
 
 except ImportError:
     logging.error(ImportError)
     print((os.linesep * 2).join(['Error al buscar los modulos:', str(sys.exc_info()[1]), 'Debes Instalarlos para continuar', 'Deteniendo...']))
     sys.exit(-2)
 
+ROOT_DIR = os.path.dirname(__file__)
+
 class Security() :
-    api_key = os.environ.get('APIKEY_SERVER','None')
+    root_dir = None
+    headers = None
+    url_base = 'https://dev.jonnattan.com/scraper'
+    def __init__(self, root_dir = str(ROOT_DIR)) :
+        try:
+            self.root_dir = root_dir
+            api_key = str(os.environ.get('LOGIA_SCRAPER_API_KEY','None'))
+            authorization = str(os.environ.get('LOGIA_SCRAPER_AUTHORIZATION','None'))
+            self.headers = {
+                'Content-Type': 'application/json', 
+                'Accept': 'application/json',
+                'X-Api-Key': str(api_key), 
+                'Authorization': str(authorization)
+            }
+        except Exception as e :
+            print("ERROR :", e)
+            self.api_key = None
+            self.root_dir = None
     #================================================================================================
     # verificaci'on de usuarios 
     #================================================================================================
-    def verifiyUserPass( self, username, password ) :
+    def verifiy_user_pass( self, username, password ) :
         logging.info("Rescato password para usuario: " + str(username) )
-        url = 'https://dev.jonnattan.com/logia/usergl/login'
-        headers = {'API-Key': str(self.api_key), 'Content-Type': 'application/json' }
+        url = self.url_base + '/logia/login'
         user = 'Desconocido'
         grade = 0
         name = None
@@ -32,32 +51,29 @@ class Security() :
                 dato = username + '|||' + password
                 data_cipher = cipher.aes_encrypt( dato )
                 data_json = {
-                    'data' : str(data_cipher.decode('UTF-8'))
+                    'data' : str(data_cipher)
                 }
                 resp = None
-                logging.info("POST To URL: " + url )
-                resp = requests.post(url, data = json.dumps(data_json), headers = headers, timeout = 60)
-                diff = time.monotonic() - m1;
-                logging.info('Response ' + str( diff )  + ' seg' )
+                logging.info("URL: " + url )
+                resp = requests.post(url, data = json.dumps(data_json), headers = self.headers, timeout = 60)
+                logging.info('Response ' + str( time.monotonic() - m1 )  + ' seg' )
                 if resp.status_code == 200 or resp.status_code == 201 :
                     data_response = resp.json()
                     user = str( data_response['user'] )
                     grade = str( data_response['grade'] ) 
                     name = str( data_response['name'] ) 
-                    message = data_response['message'] 
+                    message = str(data_response['message']) 
             else :
                 logging.info('No cumplen con largos username['+str(username)+'] o pass['+str(password)+']')
         except Exception as e:
             print("ERROR POST:", e)
-        logging.info(' Message: [' + str( message ) +'] User[' + user + ']' )
         return user, grade, name
     #================================================================================================
     # Obtengo el grado del QH
     #================================================================================================
-    def getGrade( self, username ) :
+    def get_grade( self, username ) :
         logging.info('Intento obtener grado de ' + str(username) )
-        url = 'https://dev.jonnattan.com/logia/usergl/grade'
-        headers = {'API-Key': str(self.api_key), 'Content-Type': 'application/json' }
+        url = self.url_base + '/logia/usergl/grade'
         grade = 0
         try :
             m1 = time.monotonic_ns()
@@ -69,7 +85,7 @@ class Security() :
             }
             resp = None
             logging.info("POST To URL: " + url )
-            resp = requests.post(url, data = json.dumps(data_json), headers = headers, timeout = 5)
+            resp = requests.post(url, data = json.dumps(data_json), headers = self.headers, timeout = 5)
             diff = time.monotonic_ns() - m1;
             logging.info('Response ' + str( diff )  + ' nanoseg' )
             if resp.status_code == 200 :
@@ -85,11 +101,10 @@ class Security() :
     #================================================================================================
     # Valido el grado del QH logeado con el del documento que desea ver
     #================================================================================================
-    def accessValidate(self, username, grade) :
+    def access_validate(self, username, grade) :
         access = False
         logging.info('Valido acceso a recurso de ' + str(grade) + ' a ' + str(username) )
-        url = 'https://dev.jonnattan.com/logia/usergl/access'
-        headers = {'API-Key': str(self.api_key), 'Content-Type': 'application/json' }
+        url = self.url_base + '/logia/usergl/access'
         try :
             m1 = time.monotonic_ns()
             cipher = Cipher()
@@ -100,7 +115,7 @@ class Security() :
             }
             resp = None
             logging.info("POST To URL: " + url )
-            resp = requests.post(url, data = json.dumps(data_json), headers = headers, timeout = 40)
+            resp = requests.post(url, data = json.dumps(data_json), headers = self.headers, timeout = 40)
             diff = time.monotonic_ns() - m1;
             logging.info('Response ' + str( diff )  + ' nanoseg' )
             if resp.status_code == 200 :
@@ -113,72 +128,57 @@ class Security() :
 
         return access
 
-    #================================================================================================
-    # Obtiene la URL del documento PDF
-    #================================================================================================
-    def getUrlPdf( self, grade, namedoc, user ) :
-        logging.info('Intento obtener documento ' + str(namedoc) )
-        url = 'https://dev.jonnattan.com/logia/docs/url'
-        headers = {'API-Key': str(self.api_key), 'Content-Type': 'application/json' }
-        doc_url = ''
-        try :
-            m1 = time.monotonic_ns()
-            cipher = Cipher()
-            dato = str(namedoc)+ ';' + str(grade) + ';' + str(user)
-            data_cipher = cipher.aes_encrypt( dato )
-            data_json = {
-                'data' : str(data_cipher.decode('UTF-8'))
-            }
-            resp = None
-            logging.info("POST To URL: " + url )
-            resp = requests.post(url, data = json.dumps(data_json), headers = headers, timeout = 40)
-            diff = time.monotonic_ns() - m1 
-            logging.info('Response HTTP_' + str( resp.status_code )  + ' en ' + str( diff )  + ' nanoseg' )
-            if resp.status_code == 200 :
-                data_response = resp.json()
-                doc_url = str( data_response['url'] )
-                dato = str( data_response['data'] ) # es un dato cifrado
-                doc_url = doc_url + dato
-                logging.info("Response URL: " + str( doc_url ) )
-                
-        except Exception as e:
-            print("ERROR POST:", e)
-            doc_url = ''
-
-        return doc_url
-
 
 class Cipher() :
-    aes_key = ''
-    algorithm = ''
+    aes_key = None
+    iv = None
 
-    def __init__(self, algorithm='aes', aes_key=None ) :
-        self.id = id
-        self.aes_key = aes_key
-        if aes_key == None :
-            self.aes_key =  str(os.environ.get('AES_KEY','NO_CAPTCHA_KEY')) # 256 bit
-        self.algorithm = algorithm
+    def __init__(self, ) :
+        key = os.environ.get('AES_KEY','None')
+        self.aes_key = key.encode('utf-8')[:32]
+        self.iv = b'1234567890123456'
 
     def __del__(self):
-        self.aes_key = ''
-        self.algorithm = ''
+        self.aes_key = None
+        self.iv = None
 
-    def aes_encrypt(self, payload ) :
-        data_cipher = None
+    def complete( self, data_str : str ) :
+        response : str = data_str
+        if data_str != None :
+            length = len(data_str)
+            resto = 16 - (length % 16)
+            i = 0
+            while i < resto :
+                response += " "
+                i += 1
+        return response.encode()
+
+    def aes_encrypt(self, payload : str ) :  
+        data_cipher_str = None
         try :
-            logging.info("Cifro: " + str(self.algorithm))
-            data_cipher = jwe.encrypt(payload, key=self.aes_key, algorithm='dir', encryption='A256GCM')
+            data_clear = self.complete(payload) # se lleva a bytes el texto
+            cipher = AES.new(self.aes_key, AES.MODE_CBC, self.iv)
+            data_cipher = cipher.encrypt(data_clear) # se encriptan los bytes
+            if data_cipher != None :
+                b64 = base64.b64encode(data_cipher) # se convierten en base64
+                data_cipher_str = b64.decode() # pasan a string la cadena de bytes
         except Exception as e:
             print("ERROR Cipher:", e)
-            data_cipher = None
-        return data_cipher
+            data_cipher_str = None
+        return data_cipher_str
 
-    def aes_decrypt(self, data ) :
-        data_clear = None
+    def aes_decrypt(self, data_cipher_str: str ) :        
+        data_clear_str = None
         try :
-            logging.info("Decifro" + str(self.algorithm))
-            data_clear = jwe.decrypt(data, key=self.aes_key )
+            b64 = data_cipher_str.encode() # string se pasan a bytes
+            data_cipher = base64.b64decode(b64) # bytes en base64 se pasan a los bytes para decifrar
+            cipher = AES.new(self.aes_key, AES.MODE_CBC, self.iv)
+            data_clear = cipher.decrypt(data_cipher) # se desencriptan los bytes
+            if data_clear != None :
+                data_clear_str = data_clear.decode() # se llega la cadeba de bytes a texto
+                data_clear_str = data_clear_str.strip()
         except Exception as e:
             print("ERROR Decipher:", e)
-            data_clear = None
-        return data_clear
+            data_clear_str = None
+        return data_clear_str
+    

@@ -1,18 +1,18 @@
 version: "3.3"
 services:
-  nginx:
-    container_name: reverse-proxy
+  rp-logia:
+    container_name: rp-logia
     image: ubuntu/nginx:1.18-22.04_beta
     restart: always
     volumes:
-      - $PWD/html:/var/www/html
-      - $PWD/conf/ngnix.conf:/etc/nginx/nginx.conf
-      - $PWD/conf/default.conf:/etc/nginx/sites-available/default
-      - $PWD/conf/mime.types:/etc/nginx/mime.types
-      - $PWD/logs:/var/log/nginx
-      - $PWD/ssl:/etc/ssl
+      - ./html:/var/www/html
+      - ./conf/ngnix.conf:/etc/nginx/nginx.conf
+      - ./conf/default.conf:/etc/nginx/sites-available/default
+      - ./conf/mime.types:/etc/nginx/mime.types
+      - ./logs:/var/log/nginx
+      - ./ssl:/etc/ssl
     environment:
       - TZ:UTC-4
     ports:
-      - "80:80"
-      - "443:443"
+      - "55580:55580"
+      - "55443:55443"

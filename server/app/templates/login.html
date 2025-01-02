@@ -2,8 +2,8 @@
 
 {% block addhead %}
   <script src="https://js.hcaptcha.com/1/api.js" async defer> </script>
-  <script language="JavaScript" type="text/javascript" src="https://logia.buenaventuracadiz.com/static/js/logia.js"
-    integrity="sha384-9rmDlwLT0K+aVmuBUkSaRtY9yde75C/s8sS3u5p/zmtDUmGxJep9Jg+omqPKXvKd">
+  <script language="JavaScript" type="text/javascript" src="https://logia.buenaventuracadiz.cl/bcp/static/js/logia.js"
+    integrity="sha384-mLFUXpUaS4tqKbPnjYQ15cqazdOKtoYgnO/cd6CcQq9LJm1ckpZd7lUC8+3UGl0J">
     </script>
 
   <script type="text/javascript">
@@ -13,12 +13,15 @@
     function err() {
       console.info('############ ERR')
     }
+    function captchaEval() {
+      console.info('############ captchaEval')
+    }
   </script>
 {% endblock %}
 
 {% block content %}
 <div class="container" max-width="sm" style="padding:5px 0px 0px 0px; width: 300px ;">
-  <form class="row g-3" id="login" name="login" action="/page/login/verify" method="POST" autocomplete="off">
+  <form class="row g-3" id="login" name="login" action="/bcp/login/verify" method="POST" autocomplete="off">
     <div class="row" style="padding:10px 0px 0px 0px;">
       <div class="col">
         <div class="mb-3">
@@ -28,10 +31,10 @@
           <input type="password" class="form-control" id="pass" placeholder="Password de registro en GLCH" name="password">
           <input type="text" hidden class="form-control" id="csrf_token" readonly name="csrf_token" value="{{csrf_token()}}">
         </div>
-        <div class="h-captcha" data-callback="tokenEval" lh="es" data-open-callback="open" data-error-callback="err"
+        <div class="h-captcha" data-callback="captchaValueToken" lh="es" data-open-callback="open" data-error-callback="err"
           data-sitekey="{{captcha_key}}"></div>
         <div class="mb-3" align="center">
-          <input id="btnNext" disabled type="submit" class="btn btn-success" value="Ingresar">
+          <input id="btnIngresar" disabled type="submit" class="btn btn-success" value="Ingresar" name="btnIngresar">
         </div>
       </div>
     </div>
