@@ -5,7 +5,7 @@ try:
     import sys
     import os
     import time
-    import datetime
+    from datetime import datetime
     import requests
     from flask_cors import CORS
     from flask_wtf.csrf import CSRFProtect
@@ -13,7 +13,7 @@ try:
     # Clases personales
     from security import Security, Cipher
     from check import Checker
-    from works import Works
+    from works import Works, Work
 
 except ImportError:
     logging.error(ImportError)
@@ -105,37 +105,36 @@ def checkProccess():
 @csrf.exempt
 def intranet_pdf(subpath):
     user_name = None
-    #base_url = str(request.headers.get('Referer'))
-    #url : str = base_url + '/docs/access_denied.pdf'
     data = {
         'data'    : None,
         'type'    : 'application/pdf'
     }
     grade_docname = str(subpath)
-    name = None
+    name_qh = None
     logging.info('Solicita Mostrar Documento: ' + grade_docname )
     cookie = request.cookies.get('SESION_RL')
     if cookie != None :
         cipher = Cipher()
         data_str = cipher.aes_decrypt(cookie)
-        datos = data_str.split('&')
-        if len(datos) == 3 :
-            user_name = str(datos[0].strip())
-            name = str(datos[2].strip())
         del cipher
-    if user_name != None :
-        logging.info('User at the cookie: ' + str(user_name))
+        datos = data_str.split('&')
+        if len(datos) == 4 :
+            user_name = str(datos[0].strip())
+            grade_qh = int(datos[1].strip())
+            name_qh = str(datos[2].strip())
+            maintainer = bool(datos[3].strip())
+            logging.info('User at the cookie: ' + str(user_name) + ', grade ' + str(grade_qh) + ', maintainer ' + str(maintainer) )
     paths = str(grade_docname).split('/')
     if len(paths) == 2 :
         documents = Works()
-        data_doc, type_doc = documents.get_url_pdf( paths[0].strip(),  paths[1].strip(), user_name )
+        data_doc, type_doc = documents.get_pdf_file( paths[0].strip(),  paths[1].strip(), user_name )
         del documents
         if data_doc != None and type_doc != None :
             data = {
                 'data'    : data_doc,
                 'type'    : type_doc
             }
-    return render_template( 'show.html', doc=data, name=name )
+    return render_template( 'show.html', doc=data, name=name_qh, maintainer=maintainer, user_name=user_name), 200
 
 # ===============================================================================
 # logout
@@ -160,21 +159,22 @@ def login():
 def login_verify():
     username = str(request.form['username'])
     password = str(request.form['password'])
-    grade = 0
-    name = 'QH:. Sin Nombre'
+    grade_qh : int = 0
+    name_qh : str = 'QH:. Sin Nombre'
     user = None
     works = []
     programs = []
     lengthw = 0
     lengthp = 0
+    maintainer = False
     if username != None and password != None :
         security = Security()
-        user, grade, name =  security.verifiy_user_pass(username, password)
+        user, grade_qh, name_qh, maintainer =  security.verifiy_user_pass(username, password)
         del security
-    logging.info('Usuario: ' + str(name) + ' Username: ' + str(user) + ' Grado: ' + str(grade) )
-    if int(grade) > 0 and int(grade) <= 3 :
+    logging.info('Usuario: ' + str(name_qh) + ' Username: ' + str(user) + ' Grado: ' + str(grade_qh) + ' Mantenedor: ' + str(maintainer) )
+    if grade_qh > 0 and grade_qh <= 3 :
         documents = Works()
-        works, programs = documents.get_works(grade)
+        works, programs = documents.get_works(grade_qh)
         if works != None and programs != None :
             lengthw = len(works) 
             lengthp = len(programs)
@@ -184,19 +184,21 @@ def login_verify():
         'lengthw' : lengthw,
         'programs' : programs,
         'lengthp' : lengthp,
-        'grade' : int(grade),
-        'name' : name
+        'grade' : grade_qh,
+        'name' : name_qh,
+        'maintainer' : bool(maintainer),
+        'username' : username
     }
     response = make_response( render_template('intranet.html', data = data ) )
-    cookie = ''
-    if username != None and grade != None :
+    cookie : str = ''
+    if user != None and grade_qh > 0 and grade_qh <= 3 :
         cipher = Cipher()
-        dato = str(username) + '&' + str(grade) + '&' + str(name)
+        dato = str(username) + '&' + str(grade_qh) + '&' + str(name_qh) + '&' + str(maintainer)
         data_cipher = cipher.aes_encrypt( dato )
+        del cipher
         cookie = str(data_cipher)
-    expire_date = datetime.datetime.now()
-    expire_date = expire_date + datetime.timedelta(minutes=5)
-    # vence en 30 min
+    
+    # cookie vence en 30 min
     response.set_cookie('SESION_RL', cookie, path='/bcp', max_age=1800, secure=True, httponly = True )
     return response
 
@@ -205,45 +207,46 @@ def login_verify():
 # lista de objetos con los datos necesarios para llenar la tabla
 # ===============================================================================
 @app.route('/bcp/intranet', methods=['GET'])
-@csrf.exempt
 def intranet():
     works = []
     programs = []
     user_name = None
-    grade = 0
-    name = None 
-    lengthw = 0
-    lengthp = 0
+    grade_qh : int = 0
+    name_qh = None 
+    maintainer : bool = False
     cookie = request.cookies.get('SESION_RL')
+
     if cookie != None :
         cipher = Cipher()
         data_str = cipher.aes_decrypt(cookie)
-        datos = data_str.split('&')
-        if len(datos) == 3 :
-            user_name = str(datos[0].strip())
-            grade = int(datos[1].strip())
-            name = str(datos[2].strip())
         del cipher
-    if user_name != None :
-        logging.info('UserCookie[' + str(user_name)  +  ']' )
-    if int(grade) > 0 and int(grade) <= 3 :
-        documents = Works()
-        works, programs = documents.get_works(grade)
-        if works != None and programs != None :
-            lengthw = len(works) 
-            lengthp = len(programs)
-        del documents  
+        datos = data_str.split('&')
+        if len(datos) == 4 :
+            user_name = str(datos[0].strip())
+            grade_qh = int(datos[1].strip())
+            name_qh = str(datos[2].strip())
+            maintainer = bool(datos[3].strip())
+            logging.info('User at the cookie: ' + str(user_name) + ', grade ' + str(grade_qh) + ', maintainer ' + str(maintainer) )
     else :
-        logging.info('Usuario no ha iniciado sesion')
         return redirect('/bcp/login'), 302
-    logging.info('Hay ' + str(lengthw + lengthp) + ' trabajos para ' + str(name) )
+
+    if grade_qh > 0 and grade_qh <= 3 :
+        documents = Works()
+        works, programs = documents.get_works(grade_qh)
+        del documents  
+        logging.info('There are ' + str(len(works) + len(programs)) + ' works at ' + str(get_name(grade_qh)) )
+    else :
+        return redirect('/bcp/login'), 302
+
     data = {
         'works' : works,
-        'lengthw' : lengthw,
+        'lengthw' : len(works),
         'programs' : programs,
-        'lengthp' : lengthp,
-        'grade' : int(grade),
-        'name' : name
+        'lengthp' : len(programs),
+        'grade' : grade_qh,
+        'name' : name_qh,
+        'maintainer' : maintainer,
+        'username' : user_name
     }
     return render_template('intranet.html', data = data )
 
@@ -260,7 +263,7 @@ def show_pdf(subpath):
         cipher = Cipher()
         data_str = cipher.aes_decrypt(cookie)
         datos = data_str.split('&')
-        if len(datos) == 3 :
+        if len(datos) == 4 :
             user_name = str(datos[0].strip())
         del cipher
         file_path = os.path.join(ROOT_DIR, 'static/docs')
@@ -284,83 +287,205 @@ def show_pdf(subpath):
 @app.route('/bcp/more', methods=['GET'])
 @csrf.exempt
 def more():
-    grade = 0
+    grade_qh : int = 0
     works = []
     length = 0
     user_name = None
-    grade_name = ''
+    grade_name : str = ''
+    maintainer : bool = False
+    name_qh : str = None
     cookie = request.cookies.get('SESION_RL')
     if cookie != None :
         cipher = Cipher()
         data_str = cipher.aes_decrypt(cookie)
         datos = data_str.split('&')
-        if len(datos) == 3 :
+        if len(datos) == 4 :
             user_name = str(datos[0].strip())
-            grade = int(datos[1].strip())
-            name = str(datos[2].strip())
+            grade_qh = int(datos[1].strip())
+            name_qh = str(datos[2].strip())
+            maintainer = bool(datos[3].strip())
+            logging.info('User at the cookie: ' + str(user_name) + ', grade ' + str(grade_qh) + ', maintainer ' + str(maintainer) )
         del cipher
-    if user_name != None :
-        logging.info('UserCookie[' + str(user_name)  + ']' )
-    if int(grade) > 0 and int(grade) <= 3 :
-        if int(grade) == 1 :
-            grade_name = 'Primer Grado'
-        elif int(grade) == 2 :
-            grade_name = 'Segundo Grado'
-        elif int(grade) == 3 :
-            grade_name = 'Tercer Grado'
-        else :
-            grade_name = None
+    else :
+        return redirect('/bcp/login'), 302
+    grade_name = get_name(grade_qh)
+    if grade_name != None :
         documents = Works()
-        works = documents.get_other_docs(grade)
+        works = documents.get_other_docs(grade_qh)
         del documents  
         if works != None:
-            length = len(works) 
-            logging.info('Hay ' + str(length) + ' documentos adicionales para grado ' + str(grade) )
+            logging.info('Hay ' + str(len(works)) + ' documentos adicionales para grado ' + str(grade_qh) )
     else :
-        logging.info('Usuario no ha iniciado sesion')
         return redirect('/bcp/login'), 302
       
-    return render_template('more.html', grade=grade_name, documents=works, len=length, name=name )
+    return render_template('more.html', grade=grade_name, documents=works, len=len(works), name=name_qh, maintainer=maintainer, username=user_name)
+
+def get_name(grade: int) :
+    if grade == 1 :
+        return 'Primer Grado'
+    elif grade == 2 :
+        return 'Segundo Grado'
+    elif grade == 3 :
+        return 'Tercer Grado'
+    else :
+        return None
+
+@app.route('/bcp/maintainer', methods=['GET'])
+def maintainer():
+    user_param : str = request.args.get('user', 'none')
+    grade_qh : int = 0
+    grade_name : str = None
+    user_name : str = None
+    name_qh : str = None
+    works : list = []
+    length : int = 0
+    cookie = request.cookies.get('SESION_RL')
+    data = {}
+    if cookie != None :
+        cipher = Cipher()
+        data_str = cipher.aes_decrypt(cookie)
+        del cipher
+        datos = data_str.split('&')
+        if len(datos) == 4 :
+            documents = Works()
+            works = documents.get_all_docs()
+            del documents  
+            data = {
+                'user_name' : str(datos[0].strip()),
+                'grade_qh': int(datos[1].strip()),
+                'name_qh': str(datos[2].strip()),
+                'maintainer': bool(datos[3].strip()),
+                'works' : works,
+                'length' : len(works)
+            }
+            logging.info('User at the cookie: ' + str(data['user_name']) + ', grade ' + str(data['grade_qh']) + ', maintainer ' + str(data['maintainer']) )
+    else :
+        return redirect('/bcp/login'), 302
+
+    if user_param == data['user_name'] and data['maintainer'] == True and data['grade_qh'] == 3 :
+        return render_template('maintainer.html', data = data, captcha_key=str(CAPTCHA_KEY) )
+    else :
+        return redirect('/bcp/login'), 302
+
+@app.route('/bcp/work/del/<path:id>', methods=['GET'])
+def del_work( id ):  
+    msg : str = 'Archivo eliminado correctamente'  
+    cookie = request.cookies.get('SESION_RL')
+    data = {}
+    if cookie != None :
+        cipher = Cipher()
+        data_str = cipher.aes_decrypt(cookie)
+        del cipher
+        datos = data_str.split('&')
+        if len(datos) == 4 :
+            user_name = str(datos[0].strip())
+            grade_qh = int(datos[1].strip())
+            name_qh = str(datos[2].strip())
+            maintainer = bool(datos[3].strip())
+            logging.info('User at the cookie: ' + user_name + ', grade ' + str(grade_qh) + ', maintainer ' + str(maintainer) )
+            if maintainer and grade_qh == 3 :
+                documents = Works()
+                success = documents.delete( int(id) )
+                works : list = []
+                if success :
+                    works = documents.get_all_docs()
+                else :
+                    msg = 'Error eliminando archivo, intente nuevamente'
+                del documents  
+                data = {
+                    'user_name' : user_name,
+                    'grade_qh': grade_qh,
+                    'name_qh':name_qh,
+                    'maintainer': maintainer,
+                    'works' : works,
+                    'length' : len(works)
+                }
+    return render_template('maintainer.html', data = data, captcha_key=str(CAPTCHA_KEY), msg=msg)
+
+@app.route('/bcp/work/add', methods=['POST'])
+def add_work(): 
+    msg : str = 'Archivo agregado correctamente'  
+    d = str(request.form['date'])
+    h = str(request.form['hour'])
+    date_str = d + ' ' + h + ':00'
+    date : datetime = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+    work = Work(
+        {
+            'id' : -1,
+            'title' : str(request.form['title']),
+            'author' : 'QH:. ' + str(request.form['author']),
+            'namefile' : str(request.form['namefile']),
+            'grade' : int(request.form['grade']),
+            'type' : str(request.form['type']),
+            'date' : date.strftime('%Y-%m-%d %H:%M:%S'),
+            'description' : str(request.form['description']),
+            'small_photo' : ''
+        }
+    )
+    
+    cookie = request.cookies.get('SESION_RL')
+    data = {}
+    if cookie != None :
+        cipher = Cipher()
+        data_str = cipher.aes_decrypt(cookie)
+        del cipher
+        datos = data_str.split('&')
+        if len(datos) == 4 :
+            user_name = str(datos[0].strip())
+            grade_qh = int(datos[1].strip())
+            name_qh = str(datos[2].strip())
+            maintainer = bool(datos[3].strip())
+            logging.info('User at the cookie: ' + user_name + ', grade ' + str(grade_qh) + ', maintainer ' + str(maintainer) )
+            if maintainer and grade_qh == 3 :
+                documents = Works()
+                success = documents.save( work )
+                works : list = []
+                if success :
+                    works = documents.get_all_docs()
+                else :
+                    msg = 'Error agregando archivo, intente nuevamente'
+                del documents  
+                data = {
+                    'user_name' : user_name,
+                    'grade_qh': grade_qh,
+                    'name_qh':name_qh,
+                    'maintainer': maintainer,
+                    'works' : works,
+                    'length' : len(works)
+                }
+    return render_template('maintainer.html', data = data, captcha_key=str(CAPTCHA_KEY), msg=msg)
 
 @app.route('/bcp/youtube', methods=['GET'])
-@csrf.exempt
 def youtube():
-    grade = 0
-    grade_name = None
-    user_name = None
-    name = None
+    grade_qh : int = 0
+    grade_name : str = None
+    user_name : str = None
+    name_qh : str = None
     cookie = request.cookies.get('SESION_RL')
 
     if cookie != None :
         cipher = Cipher()
         data_str = cipher.aes_decrypt(cookie)
         datos = data_str.split('&')
-        if len(datos) == 3 :
+        if len(datos) == 4 :
             user_name = str(datos[0].strip())
-            grade = int(datos[1].strip())
-            name = str(datos[2].strip())
+            grade_qh = int(datos[1].strip())
+            name_qh = str(datos[2].strip())
+            maintainer = bool(datos[3].strip())
+            logging.info('User at the cookie: ' + str(user_name) + ', grade ' + str(grade_qh) + ', maintainer ' + str(maintainer) )
         del cipher
-    if user_name != None :
-        logging.info('UserCookie[' + str(user_name)  + ']' )
-    logging.info('Acceso a videos de grado ' + str(grade) )
-    if int(grade) > 0 and int(grade) <= 3 :
-        if int(grade) == 1 :
-            grade_name = 'Primer Grado'
-        elif int(grade) == 2 :
-            grade_name = 'Segundo Grado'
-        elif int(grade) == 3 :
-            grade_name = 'Tercer Grado'
-        else :
-            grade_name = None
     else :
         return redirect('/bcp/login'), 302
-    return render_template('youtube.html', grade=grade_name, name=name )
+
+    grade_name = get_name(grade_qh)
+    if grade_name == None :
+        return redirect('/bcp/login'), 302
+    return render_template('youtube.html', grade=grade_name, name=name_qh, maintainer=maintainer, username=user_name)
 
 # ===============================================================================
 # LOGIA
 # ===============================================================================
 @app.route('/bcp/home/<path:subpath>', methods=['POST','GET','PUT'])
-@csrf.exempt
 def rl_aniversario(subpath):
     path = str(subpath)
     logging.info('Solicita Path: /' + path)
@@ -372,10 +497,23 @@ def rl_aniversario(subpath):
         return render_template( 'logia.html', select=path )
 # ===============================================================================
 @app.route('/bcp/home', methods=['GET'])
-@csrf.exempt
 def home():
-    logging.info('HOME !!')
-    return render_template( 'logia.html' )
+    cookie = request.cookies.get('SESION_RL')
+    data = {}
+    if cookie != None :
+        cipher = Cipher()
+        data_str = cipher.aes_decrypt(cookie)
+        del cipher
+        datos = data_str.split('&')
+        if len(datos) == 4 :
+            data = {
+                'user_name' : str(datos[0].strip()),
+                'grade_qh': int(datos[1].strip()),
+                'name_qh': str(datos[2].strip()),
+                'maintainer': bool(datos[3].strip()),
+            }
+            logging.info('User at the cookie: ' + str(data['user_name']) + ', grade ' + str(data['grade_qh']) + ', maintainer ' + str(data['maintainer']) )
+    return render_template( 'logia.html', data=data )
 # ===============================================================================
 @app.route('/bcp/aniversario', methods=['POST','GET','PUT'])
 def aniversario():
@@ -389,7 +527,6 @@ def reublanca():
     grade = 1
     name = 'Anonimo'
     return render_template( 'reublanca.html', name=name, grade=grade )
-
 
 # ==============================================================================
 # Servicio para validar el recaptcha

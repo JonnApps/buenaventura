@@ -19,6 +19,15 @@
   </script>
 {% endblock %}
 
+{% block maintainer %} 
+  {% if maintainer %} 
+    <li class="nav-item">
+      <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Administrar Trabajos que se mostraran en intranet""
+        href="/bcp/maintainer?user={{username}}">Administrar</a>
+    </li>
+  {% endif %}
+{% endblock %}
+
 {% block content %}
 <div class="container" max-width="sm" style="padding:5px 0px 0px 0px; width: 300px ;">
   <form class="row g-3" id="login" name="login" action="/bcp/login/verify" method="POST" autocomplete="off">

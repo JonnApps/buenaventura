@@ -1,5 +1,24 @@
 {% extends 'menu.html' %}
 
+{% block maintainer %} 
+  {% if data %} 
+    {% if data.maintainer %} 
+      <li class="nav-item">
+        <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Administrar Trabajos que se mostraran en intranet""
+          href="/bcp/maintainer?user={{data.user_name}}">Administrar</a>
+      </li>
+    {% endif %}
+  {% endif %}
+{% endblock %}
+
+{% block nameqh %} 
+  {% if data.name_qh %} 
+    <button class="btn btn-sm btn-outline-secondary" type="button"> 
+        <a class="nav-link" href="/bcp/logout">{{data.name_qh}} </a> 
+     </button> 
+  {% endif %} 
+{% endblock %}
+
 {% block content %}
 
 <div class="row" align="justify" style="padding: 50px 0px 0px 0px;">

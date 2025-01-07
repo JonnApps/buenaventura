@@ -43,6 +43,7 @@ class Security() :
         user = 'Desconocido'
         grade = 0
         name = None
+        maintainer = False
         message = 'Error de ejecución del servicio'
         try :
             if len(str(user)) > 0 and len(str(password)) > 0 :
@@ -60,14 +61,15 @@ class Security() :
                 if resp.status_code == 200 or resp.status_code == 201 :
                     data_response = resp.json()
                     user = str( data_response['user'] )
-                    grade = str( data_response['grade'] ) 
-                    name = str( data_response['name'] ) 
+                    grade = int( data_response['grade'] ) 
+                    name = 'Qh:. ' + str( data_response['name'] ) 
                     message = str(data_response['message']) 
+                    maintainer = bool(data_response['maintainer'])
             else :
                 logging.info('No cumplen con largos username['+str(username)+'] o pass['+str(password)+']')
         except Exception as e:
             print("ERROR POST:", e)
-        return user, grade, name
+        return user, grade, name, maintainer
     #================================================================================================
     # Obtengo el grado del QH
     #================================================================================================
