@@ -1,17 +1,17 @@
 version: "3.3"
 services:
-    python-server:
-      container_name: python-server
-      # Crea la imagen con el archivo Dockerfile de esta misma carpeta
+    logia-server:
+      container_name: logia-server
       build: .
       restart: always
       volumes:
-        - $PWD/app:/home/logia/app
+        - ./app:/home/logia/app
       ports:
-        - "8085:8085"
+        - "58085:58085"
       env_file:
       - env.prod
       networks:
         - db-net
+      # command: tail -f /home/logia/requirements.txt
 networks:
   db-net:

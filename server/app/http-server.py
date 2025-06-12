@@ -5,7 +5,7 @@ try:
     import sys
     import os
     import time
-    import datetime
+    from datetime import datetime
     import requests
     from flask_cors import CORS
     from flask_wtf.csrf import CSRFProtect
@@ -13,7 +13,7 @@ try:
     # Clases personales
     from security import Security, Cipher
     from check import Checker
-    from works import Works
+    from works import Works, Work
 
 except ImportError:
     logging.error(ImportError)
@@ -52,7 +52,7 @@ app.config.update( DEBUG=False, SECRET_KEY = str(SECRET_KEY_CSRF), )
 csrf = CSRFProtect()
 csrf.init_app(app)
 
-cors = CORS(app, resources={r"/page/*": {"origins": ["logia.buenaventuracadiz.com"]}})
+cors = CORS(app, resources={r"/bcp/*": {"origins": ["logia.buenaventuracadiz.com"]}})
 # ==============================================================================
 # variables globales
 # ==============================================================================
@@ -101,84 +101,80 @@ def checkProccess():
 # ===============================================================================
 # INTRANET
 # ===============================================================================
-@app.route('/page/intranet/show/<path:subpath>', methods=['GET'])
+@app.route('/bcp/intranet/show/<path:subpath>', methods=['GET'])
 @csrf.exempt
 def intranet_pdf(subpath):
     user_name = None
-    request_data = request.headers.get('Referer')
-    base_url =  str(request_data)
-    url = base_url + '/docs/access_denied.pdf'
+    data = {
+        'data'    : None,
+        'type'    : 'application/pdf'
+    }
     grade_docname = str(subpath)
-    name = None
+    name_qh = None
     logging.info('Solicita Mostrar Documento: ' + grade_docname )
-    
     cookie = request.cookies.get('SESION_RL')
-
     if cookie != None :
         cipher = Cipher()
-        data_clear = cipher.aes_decrypt(cookie)
-        data_str = str(data_clear.decode('UTF-8'))
-        datos = data_str.split('&')
-        if len(datos) == 3 :
-            user_name = str(datos[0].strip())
-            name = str(datos[2].strip())
+        data_str = cipher.aes_decrypt(cookie)
         del cipher
-    
-    if user_name != None :
-        logging.info('UserCookie[' + str(user_name)  + ']' )
-
-
+        datos = data_str.split('&')
+        if len(datos) == 4 :
+            user_name = str(datos[0].strip())
+            grade_qh = int(datos[1].strip())
+            name_qh = str(datos[2].strip())
+            maintainer = bool(datos[3].strip())
+            logging.info('User at the cookie: ' + str(user_name) + ', grade ' + str(grade_qh) + ', maintainer ' + str(maintainer) )
     paths = str(grade_docname).split('/')
     if len(paths) == 2 :
-        sec = Security()
-        url = sec.getUrlPdf( paths[0].strip(),  paths[1].strip(), user_name )
-        del sec 
-    if url == '' :
-        url = base_url + '/docs/access_denied.pdf'
-    return render_template( 'show.html', doc=url, name=name )
-# ===============================================================================
-# LOGIN
-# ===============================================================================
-@app.route('/page/login', methods=['GET'])
-def login():
-    logging.info('LOGIN!!')
-    response = make_response( render_template( 'login.html', captcha_key=str(CAPTCHA_KEY) ) )
-    response.set_cookie('SESION_RL', '', path='/page', max_age=0, secure=True, httponly = True )
-    return response
+        documents = Works()
+        data_doc, type_doc = documents.get_pdf_file( paths[0].strip(),  paths[1].strip(), user_name )
+        del documents
+        if data_doc != None and type_doc != None :
+            data = {
+                'data'    : data_doc,
+                'type'    : type_doc
+            }
+    return render_template( 'show.html', doc=data, name=name_qh, maintainer=maintainer, user_name=user_name), 200
 
 # ===============================================================================
 # logout
 # ===============================================================================
-@app.route('/page/logout', methods=['GET'])
+@app.route('/bcp/logout', methods=['GET'])
 def logout():
-    logging.info('LOGOUT!!')
-    return redirect('/page/login'), 302
+    return redirect('/bcp/login'), 302
+
+# ===============================================================================
+# Login
+# ===============================================================================
+@app.route('/bcp/login', methods=['GET'])
+def login():
+    response = make_response( render_template( 'login.html', captcha_key=str(CAPTCHA_KEY) ) )
+    response.set_cookie('SESION_RL', '', path='/bcp', max_age=0, secure=True, httponly=True )
+    return response
 
 # ===============================================================================
 # VALIDATE LOGIN
 # ===============================================================================
-@app.route('/page/login/verify', methods=['POST'])
+@app.route('/bcp/login/verify', methods=['POST'])
 def login_verify():
     username = str(request.form['username'])
     password = str(request.form['password'])
-    grade = 0
-    name = 'QH:. Sin Nombre'
+    grade_qh : int = 0
+    name_qh : str = 'QH:. Sin Nombre'
     user = None
     works = []
     programs = []
     lengthw = 0
     lengthp = 0
-
+    maintainer = False
     if username != None and password != None :
-        basic_auth = Security()
-        user, grade, name =  basic_auth.verifiyUserPass(username, password)
-        del basic_auth
-
-    logging.info('Username['+str(user)+'] Grado['+str(grade)+'] Usuario['+str(name)+']' )
-
-    if int(grade) > 0 and int(grade) <= 3 :
+        security = Security()
+        user, grade_qh, name_qh, maintainer =  security.verifiy_user_pass(username, password)
+        del security
+    logging.info('Usuario: ' + str(name_qh) + ' Username: ' + str(user) + ' Grado: ' + str(grade_qh) + ' Mantenedor: ' + str(maintainer) )
+    if grade_qh > 0 and grade_qh <= 3 :
         documents = Works()
-        works, programs = documents.getWorks(grade)
+        works, programs = documents.get_works(grade_qh)
         if works != None and programs != None :
             lengthw = len(works) 
             lengthp = len(programs)
@@ -188,203 +184,308 @@ def login_verify():
         'lengthw' : lengthw,
         'programs' : programs,
         'lengthp' : lengthp,
-        'grade' : int(grade),
-        'name' : name
+        'grade' : grade_qh,
+        'name' : name_qh,
+        'maintainer' : bool(maintainer),
+        'username' : username
     }
     response = make_response( render_template('intranet.html', data = data ) )
-    
-    cookie = ''
-    if username != None and grade != None :
+    cookie : str = ''
+    if user != None and grade_qh > 0 and grade_qh <= 3 :
         cipher = Cipher()
-        dato = str(username) + '&' + str(grade) + '&' + str(name)
+        dato = str(username) + '&' + str(grade_qh) + '&' + str(name_qh) + '&' + str(maintainer)
         data_cipher = cipher.aes_encrypt( dato )
-        cookie = str(data_cipher.decode('UTF-8'))
-
-    expire_date = datetime.datetime.now()
-    expire_date = expire_date + datetime.timedelta(minutes=5)
-    # vence en 30 min
-    response.set_cookie('SESION_RL', cookie, path='/page', max_age=1800, secure=True, httponly = True )
-
+        del cipher
+        cookie = str(data_cipher)
+    
+    # cookie vence en 30 min
+    response.set_cookie('SESION_RL', cookie, path='/bcp', max_age=1800, secure=True, httponly = True )
     return response
 
 # ===============================================================================
 # para llenar la tabla dinamicamente se deben obtener los documentos como una 
 # lista de objetos con los datos necesarios para llenar la tabla
 # ===============================================================================
-@app.route('/page/intranet', methods=['GET'])
-@csrf.exempt
+@app.route('/bcp/intranet', methods=['GET'])
 def intranet():
     works = []
     programs = []
     user_name = None
-    grade = 0
-    name = None 
-    lengthw = 0
-    lengthp = 0
-
+    grade_qh : int = 0
+    name_qh = None 
+    maintainer : bool = False
     cookie = request.cookies.get('SESION_RL')
 
     if cookie != None :
         cipher = Cipher()
-        data_clear = cipher.aes_decrypt(cookie)
-        data_str = str(data_clear.decode('UTF-8'))
-        datos = data_str.split('&')
-        if len(datos) == 3 :
-            user_name = str(datos[0].strip())
-            grade = int(datos[1].strip())
-            name = str(datos[2].strip())
+        data_str = cipher.aes_decrypt(cookie)
         del cipher
-    
-    if user_name != None :
-        logging.info('UserCookie[' + str(user_name)  +  ']' )
-
-    if int(grade) > 0 and int(grade) <= 3 :
-        documents = Works()
-        works, programs = documents.getWorks(grade)
-        if works != None and programs != None :
-            lengthw = len(works) 
-            lengthp = len(programs)
-        del documents  
+        datos = data_str.split('&')
+        if len(datos) == 4 :
+            user_name = str(datos[0].strip())
+            grade_qh = int(datos[1].strip())
+            name_qh = str(datos[2].strip())
+            maintainer = bool(datos[3].strip())
+            logging.info('User at the cookie: ' + str(user_name) + ', grade ' + str(grade_qh) + ', maintainer ' + str(maintainer) )
     else :
-        logging.info('Usuario no ha iniciado sesion')
-        return redirect('/page/login'), 302
-    
-    logging.info('Hay ' + str(lengthw + lengthp) + ' trabajos para ' + str(name) )
+        return redirect('/bcp/login'), 302
+
+    if grade_qh > 0 and grade_qh <= 3 :
+        documents = Works()
+        works, programs = documents.get_works(grade_qh)
+        del documents  
+        logging.info('There are ' + str(len(works) + len(programs)) + ' works at ' + str(get_name(grade_qh)) )
+    else :
+        return redirect('/bcp/login'), 302
 
     data = {
         'works' : works,
-        'lengthw' : lengthw,
+        'lengthw' : len(works),
         'programs' : programs,
-        'lengthp' : lengthp,
-        'grade' : int(grade),
-        'name' : name
+        'lengthp' : len(programs),
+        'grade' : grade_qh,
+        'name' : name_qh,
+        'maintainer' : maintainer,
+        'username' : user_name
     }
-
     return render_template('intranet.html', data = data )
 
 # ===============================================================================
+# para llenar la tabla dinamicamente se deben obtener los documentos como una 
+# lista de objetos con los datos necesarios para llenar la tabla
 # ===============================================================================
-@app.route('/page/intranet/docs/<path:subpath>', methods=['GET'])
+@app.route('/bcp/intranet/docs/<path:subpath>', methods=['GET'])
 @csrf.exempt
 def show_pdf(subpath):
     user_name = None
     cookie = request.cookies.get('SESION_RL')
     if cookie != None :
         cipher = Cipher()
-        data_clear = cipher.aes_decrypt(cookie)
-        data_str = str(data_clear.decode('UTF-8'))
+        data_str = cipher.aes_decrypt(cookie)
         datos = data_str.split('&')
-        if len(datos) == 3 :
+        if len(datos) == 4 :
             user_name = str(datos[0].strip())
         del cipher
-
         file_path = os.path.join(ROOT_DIR, 'static/docs')
         paths = str(subpath).split('/')
-
         if len(paths) == 2 :
             logging.info('Usuario: ' + str(user_name) + ' Solicita documento: ' + paths[1].strip() )
-            sec = Security()
-            accessOk = sec.accessValidate(user_name, paths[0].strip())
-            del sec
+            security = Security()
+            accessOk = security.access_validate(user_name, paths[0].strip())
+            del security
             if accessOk :
                 return send_from_directory(file_path, paths[1].strip())
     else :
         logging.info('Usuario no ha iniciado sesion')
-        return redirect('/page/login'), 302
-    
+        return redirect('/bcp/login'), 302
     return send_from_directory(file_path, 'access_denied.pdf')
 
-
 # ===============================================================================
-@app.route('/page/more', methods=['GET'])
+# para llenar la tabla dinamicamente se deben obtener los documentos como una 
+# lista de objetos con los datos necesarios para llenar la tabla
+# ===============================================================================   
+@app.route('/bcp/more', methods=['GET'])
 @csrf.exempt
 def more():
-    grade = 0
+    grade_qh : int = 0
     works = []
     length = 0
     user_name = None
-    grade_name = ''
+    grade_name : str = ''
+    maintainer : bool = False
+    name_qh : str = None
     cookie = request.cookies.get('SESION_RL')
-
     if cookie != None :
         cipher = Cipher()
-        data_clear = cipher.aes_decrypt(cookie)
-        data_str = str(data_clear.decode('UTF-8'))
+        data_str = cipher.aes_decrypt(cookie)
         datos = data_str.split('&')
-        if len(datos) == 3 :
+        if len(datos) == 4 :
             user_name = str(datos[0].strip())
-            grade = int(datos[1].strip())
-            name = str(datos[2].strip())
+            grade_qh = int(datos[1].strip())
+            name_qh = str(datos[2].strip())
+            maintainer = bool(datos[3].strip())
+            logging.info('User at the cookie: ' + str(user_name) + ', grade ' + str(grade_qh) + ', maintainer ' + str(maintainer) )
         del cipher
-
-    if user_name != None :
-        logging.info('UserCookie[' + str(user_name)  + ']' )
-
-    if int(grade) > 0 and int(grade) <= 3 :
-        if int(grade) == 1 :
-            grade_name = 'Primer Grado'
-        elif int(grade) == 2 :
-            grade_name = 'Segundo Grado'
-        elif int(grade) == 3 :
-            grade_name = 'Tercer Grado'
-        else :
-            grade_name = None
+    else :
+        return redirect('/bcp/login'), 302
+    grade_name = get_name(grade_qh)
+    if grade_name != None :
         documents = Works()
-        works = documents.getOtherDocs(grade)
-        if works != None:
-            length = len(works) 
-            logging.info('Hay ' + str(length) + ' documentos adicionales para grado ' + str(grade) )
+        works = documents.get_other_docs(grade_qh)
         del documents  
+        if works != None:
+            logging.info('Hay ' + str(len(works)) + ' documentos adicionales para grado ' + str(grade_qh) )
     else :
-        logging.info('Usuario no ha iniciado sesion')
-        return redirect('/page/login'), 302
+        return redirect('/bcp/login'), 302
       
-    return render_template('more.html', grade=grade_name, documents=works, len=length, name=name )
+    return render_template('more.html', grade=grade_name, documents=works, len=len(works), name=name_qh, maintainer=maintainer, username=user_name)
 
-@app.route('/page/youtube', methods=['GET'])
-@csrf.exempt
+def get_name(grade: int) :
+    if grade == 1 :
+        return 'Primer Grado'
+    elif grade == 2 :
+        return 'Segundo Grado'
+    elif grade == 3 :
+        return 'Tercer Grado'
+    else :
+        return None
+
+@app.route('/bcp/maintainer', methods=['GET'])
+def maintainer():
+    user_param : str = request.args.get('user', 'none')
+    grade_qh : int = 0
+    grade_name : str = None
+    user_name : str = None
+    name_qh : str = None
+    works : list = []
+    length : int = 0
+    cookie = request.cookies.get('SESION_RL')
+    data = {}
+    if cookie != None :
+        cipher = Cipher()
+        data_str = cipher.aes_decrypt(cookie)
+        del cipher
+        datos = data_str.split('&')
+        if len(datos) == 4 :
+            documents = Works()
+            works = documents.get_all_docs()
+            del documents  
+            data = {
+                'user_name' : str(datos[0].strip()),
+                'grade_qh': int(datos[1].strip()),
+                'name_qh': str(datos[2].strip()),
+                'maintainer': bool(datos[3].strip()),
+                'works' : works,
+                'length' : len(works)
+            }
+            logging.info('User at the cookie: ' + str(data['user_name']) + ', grade ' + str(data['grade_qh']) + ', maintainer ' + str(data['maintainer']) )
+    else :
+        return redirect('/bcp/login'), 302
+
+    if user_param == data['user_name'] and data['maintainer'] == True and data['grade_qh'] == 3 :
+        return render_template('maintainer.html', data = data, captcha_key=str(CAPTCHA_KEY) )
+    else :
+        return redirect('/bcp/login'), 302
+
+@app.route('/bcp/work/del/<path:id>', methods=['GET'])
+def del_work( id ):  
+    msg : str = 'Archivo eliminado correctamente'  
+    cookie = request.cookies.get('SESION_RL')
+    data = {}
+    if cookie != None :
+        cipher = Cipher()
+        data_str = cipher.aes_decrypt(cookie)
+        del cipher
+        datos = data_str.split('&')
+        if len(datos) == 4 :
+            user_name = str(datos[0].strip())
+            grade_qh = int(datos[1].strip())
+            name_qh = str(datos[2].strip())
+            maintainer = bool(datos[3].strip())
+            logging.info('User at the cookie: ' + user_name + ', grade ' + str(grade_qh) + ', maintainer ' + str(maintainer) )
+            if maintainer and grade_qh == 3 :
+                documents = Works()
+                success = documents.delete( int(id) )
+                works : list = []
+                if success :
+                    works = documents.get_all_docs()
+                else :
+                    msg = 'Error eliminando archivo, intente nuevamente'
+                del documents  
+                data = {
+                    'user_name' : user_name,
+                    'grade_qh': grade_qh,
+                    'name_qh':name_qh,
+                    'maintainer': maintainer,
+                    'works' : works,
+                    'length' : len(works)
+                }
+    return render_template('maintainer.html', data = data, captcha_key=str(CAPTCHA_KEY), msg=msg)
+
+@app.route('/bcp/work/add', methods=['POST'])
+def add_work(): 
+    msg : str = 'Archivo agregado correctamente'  
+    d = str(request.form['date'])
+    h = str(request.form['hour'])
+    date_str = d + ' ' + h + ':00'
+    date : datetime = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+    work = Work(
+        {
+            'id' : -1,
+            'title' : str(request.form['title']),
+            'author' : 'QH:. ' + str(request.form['author']),
+            'namefile' : str(request.form['namefile']),
+            'grade' : int(request.form['grade']),
+            'type' : str(request.form['type']),
+            'date' : date.strftime('%Y-%m-%d %H:%M:%S'),
+            'description' : str(request.form['description']),
+            'small_photo' : ''
+        }
+    )
+    
+    cookie = request.cookies.get('SESION_RL')
+    data = {}
+    if cookie != None :
+        cipher = Cipher()
+        data_str = cipher.aes_decrypt(cookie)
+        del cipher
+        datos = data_str.split('&')
+        if len(datos) == 4 :
+            user_name = str(datos[0].strip())
+            grade_qh = int(datos[1].strip())
+            name_qh = str(datos[2].strip())
+            maintainer = bool(datos[3].strip())
+            logging.info('User at the cookie: ' + user_name + ', grade ' + str(grade_qh) + ', maintainer ' + str(maintainer) )
+            if maintainer and grade_qh == 3 :
+                documents = Works()
+                success = documents.save( work )
+                works : list = []
+                if success :
+                    works = documents.get_all_docs()
+                else :
+                    msg = 'Error agregando archivo, intente nuevamente'
+                del documents  
+                data = {
+                    'user_name' : user_name,
+                    'grade_qh': grade_qh,
+                    'name_qh':name_qh,
+                    'maintainer': maintainer,
+                    'works' : works,
+                    'length' : len(works)
+                }
+    return render_template('maintainer.html', data = data, captcha_key=str(CAPTCHA_KEY), msg=msg)
+
+@app.route('/bcp/youtube', methods=['GET'])
 def youtube():
-    grade = 0
-    grade_name = None
-    user_name = None
-    name = None
-
+    grade_qh : int = 0
+    grade_name : str = None
+    user_name : str = None
+    name_qh : str = None
     cookie = request.cookies.get('SESION_RL')
 
     if cookie != None :
         cipher = Cipher()
-        data_clear = cipher.aes_decrypt(cookie)
-        data_str = str(data_clear.decode('UTF-8'))
+        data_str = cipher.aes_decrypt(cookie)
         datos = data_str.split('&')
-        if len(datos) == 3 :
+        if len(datos) == 4 :
             user_name = str(datos[0].strip())
-            grade = int(datos[1].strip())
-            name = str(datos[2].strip())
+            grade_qh = int(datos[1].strip())
+            name_qh = str(datos[2].strip())
+            maintainer = bool(datos[3].strip())
+            logging.info('User at the cookie: ' + str(user_name) + ', grade ' + str(grade_qh) + ', maintainer ' + str(maintainer) )
         del cipher
-
-    if user_name != None :
-        logging.info('UserCookie[' + str(user_name)  + ']' )
-
-    logging.info('Acceso a videos de grado ' + str(grade) )
-    if int(grade) > 0 and int(grade) <= 3 :
-        if int(grade) == 1 :
-            grade_name = 'Primer Grado'
-        elif int(grade) == 2 :
-            grade_name = 'Segundo Grado'
-        elif int(grade) == 3 :
-            grade_name = 'Tercer Grado'
-        else :
-            grade_name = None
     else :
-        return redirect('/page/login'), 302
-    
-    return render_template('youtube.html', grade=grade_name, name=name )
+        return redirect('/bcp/login'), 302
+
+    grade_name = get_name(grade_qh)
+    if grade_name == None :
+        return redirect('/bcp/login'), 302
+    return render_template('youtube.html', grade=grade_name, name=name_qh, maintainer=maintainer, username=user_name)
 
 # ===============================================================================
 # LOGIA
 # ===============================================================================
-@app.route('/page/home/<path:subpath>', methods=['POST','GET','PUT'])
-@csrf.exempt
+@app.route('/bcp/home/<path:subpath>', methods=['POST','GET','PUT'])
 def rl_aniversario(subpath):
     path = str(subpath)
     logging.info('Solicita Path: /' + path)
@@ -395,30 +496,42 @@ def rl_aniversario(subpath):
     else :
         return render_template( 'logia.html', select=path )
 # ===============================================================================
-@app.route('/page/home', methods=['GET'])
-@csrf.exempt
+@app.route('/bcp/home', methods=['GET'])
 def home():
-    logging.info('HOME !!')
-    return render_template( 'logia.html' )
+    cookie = request.cookies.get('SESION_RL')
+    data = {}
+    if cookie != None :
+        cipher = Cipher()
+        data_str = cipher.aes_decrypt(cookie)
+        del cipher
+        datos = data_str.split('&')
+        if len(datos) == 4 :
+            data = {
+                'user_name' : str(datos[0].strip()),
+                'grade_qh': int(datos[1].strip()),
+                'name_qh': str(datos[2].strip()),
+                'maintainer': bool(datos[3].strip()),
+            }
+            logging.info('User at the cookie: ' + str(data['user_name']) + ', grade ' + str(data['grade_qh']) + ', maintainer ' + str(data['maintainer']) )
+    return render_template( 'logia.html', data=data )
 # ===============================================================================
-@app.route('/page/aniversario', methods=['POST','GET','PUT'])
+@app.route('/bcp/aniversario', methods=['POST','GET','PUT'])
 def aniversario():
     grade = 1
     name = 'Anonimo'
     return render_template( 'aniversario.html', name=name, grade=grade )
 
 # ===============================================================================
-@app.route('/page/reublanca', methods=['POST','GET','PUT'])
+@app.route('/bcp/reublanca', methods=['POST','GET','PUT'])
 def reublanca():
     grade = 1
     name = 'Anonimo'
     return render_template( 'reublanca.html', name=name, grade=grade )
 
-
 # ==============================================================================
 # Servicio para validar el recaptcha
 # ==============================================================================
-@app.route('/page/hcaptcha', methods=['POST'])
+@app.route('/bcp/hcaptcha', methods=['POST'])
 @csrf.exempt
 def validatehcaptcha( ):
     logging.info("Reciv Header : " + str(request.headers) )
@@ -449,14 +562,35 @@ def validatehcaptcha( ):
     logging.info("Time Response in " + str(diff) + " sec." )
 
     return jsonify(data_response), code
+
 # ===============================================================================
 # Archivos est'aticos del sistema
 # ===============================================================================
-@app.route('/static/<path:folder>/<path:name>', methods=['GET'])
+@app.get('/bcp/image/<path:imagen>')
 @csrf.exempt
-def show_static_file(folder, name):
-    logging.info('Solicita a ' + str(folder) + ' archivo: ' + str(name))
-    file_path = os.path.join(ROOT_DIR, 'static/' + str(folder))
+def imagenes(imagen):
+    return redirect('/bcp/static/image/' + str(imagen)), 302
+
+@app.get('/bcp/js/<path:jsfile>')
+@csrf.exempt
+def javascripts(jsfile):
+    return redirect('/bcp/static/js/' + str(jsfile)), 302
+
+@app.get('/bcp/styles/<path:stylesfile>')
+@csrf.exempt
+def stylescss(stylesfile):
+    return redirect('/bcp/static/styles/' + str(stylesfile)), 302
+
+@app.get('/bcp/static/<path:file_path>')
+@csrf.exempt
+def show_static_file(file_path) :
+    values = file_path.split('/')
+    if len(values) > 1 :
+        file_path = values[0]
+        name = values[1]
+    else :
+        name = file_path
+    file_path = os.path.join(ROOT_DIR, 'static/' + str(file_path))
     return send_from_directory(file_path, str(name))
 
 # ===============================================================================

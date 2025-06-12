@@ -1,0 +1,162 @@
+{% extends 'menu.html' %}
+
+{% block addhead %}
+<script src="https://js.hcaptcha.com/1/api.js" async defer> </script>
+<script language="JavaScript" type="text/javascript" src="https://logia.buenaventuracadiz.cl/bcp/static/js/logia.js"
+  integrity="sha384-mLFUXpUaS4tqKbPnjYQ15cqazdOKtoYgnO/cd6CcQq9LJm1ckpZd7lUC8+3UGl0J">
+  </script>
+
+<script type="text/javascript">
+  function open() {
+    console.info('############ OPEN')
+  }
+  function err() {
+    console.info('############ ERR')
+  }
+  function captchaEval() {
+    console.info('############ captchaEval')
+  }
+</script>
+{% endblock %}
+
+{% block maintainer %}
+{% if data.maintainer %}
+<li class="nav-item">
+  <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom"
+    title="Administrar Trabajos que se mostraran en intranet""
+        href=" /bcp/maintainer?user={{data.user_name}}">Administrar</a>
+</li>
+{% endif %}
+{% endblock %}
+
+{% block nameqh %}
+{% if data.name_qh %}
+<button class="btn btn-sm btn-outline-secondary" type="button">
+  <a class="nav-link" href="/bcp/logout">{{data.name_qh}} </a>
+</button>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid" max-width="sm" style="padding:5px 0px 0px 0px; width: 90% ;">
+
+  <form class="row g-3" id="add" name="add" action="/bcp/work/add" method="POST" autocomplete="off">
+    <div class="row" style="padding:10px 0px 0px 0px;">
+      <div class="col">
+        <label for="title" class="form-label">Título del documento</label>
+        <input type="text" class="form-control" id="title" placeholder="Nombre del trabajo" name="title">
+      </div>
+      <div class="col">
+        <label for="author" class="form-label">Nombre autor</label>
+        <input type="text" class="form-control" id="author" placeholder="Autor del trabajo" name="author">
+      </div>
+      <div class="col">
+        <label for="grade" class="form-label">Grado de visibilidad</label>
+        <select class="form-select" aria-label="Grado del Trabajo" id="grade" name="grade">
+          <option selected>Seleccione Grado</option>
+          <option value="1">Aprendiz</option>
+          <option value="2">Compañero</option>
+          <option value="3">Maestro</option>
+        </select>
+      </div>
+    </div>
+    <div class="row" style="padding:10px 0px 0px 0px;">
+      <div class="col">
+        <label for="type" class="form-label">Tipo de documento</label>
+        <select class="form-select" aria-label="Tipo del Trabajo" id="type" name="type">
+          <option selected>Seleccione Tipo Trabajo</option>
+          <option value="PROGRAM">Próximas Planchas</option>
+          <option value="WORK">Planchas Pasada</option>
+          <option value="ADDITIONAL">Material Adicional</option>
+        </select>
+      </div>
+      <div class="col">
+        <label for="date" class="form-label">Fecha y hora de presentación</label>
+        <div class="row g-2">
+          <div class="col-sm-6">
+            <input type="date" class="form-control" id="date" name="date">
+          </div>
+          <div class="col-sm-6">
+            <input type="text" class="form-control" id="hour" name="hour" placeholder="18:00">
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <label for="namefile" class="form-label">Nombre del archivo</label>
+        <input type="text" class="form-control" id="namefile" placeholder="Nombre de archivo pdf en drive"
+          name="namefile">
+      </div>
+    </div>
+    <div class="row" style="padding:10px 0px 0px 0px;">
+      <div class="col">
+        <label for="description" class="form-label">Descripción del documento</label>
+        <textarea class="form-control" id="description" rows="2" name="description"
+          placeholder="Nombre de archivo pdf en drive"> </textarea>
+      </div>
+
+      <div class="col">
+        <div class="h-captcha" data-callback="captchaValueToken" lh="es" data-open-callback="open"
+          data-error-callback="err" data-sitekey="{{captcha_key}}" style="width: 1000%;"></div>
+        <input type="text" hidden class="form-control" id="csrf_token" readonly name="csrf_token"
+          value="{{csrf_token()}}">
+      </div>
+      <div class="col">
+        <input id="btnIngresar" disabled type="submit" class="btn btn-success" value="Registrar Trabajo"
+          name="btnIngresar">
+      </div>
+    </div>
+  </form>
+
+  {% if msg %}
+  <div class="row" style="padding: 10px 0px 0px 0px;">
+    <div class="col">
+      <div class="alert alert-success" role="alert">
+        {{msg}}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row" style="padding:30px 0px 0px 0px;">
+    <div class="col">
+      <h4>Trabajos en base de datos:</h4>
+      <table class="table">
+        <thead>
+          <tr style="text-align:left; background-color: rgb(124, 163, 142);">
+            <th scope="col">Trabajo</th>
+            <th scope="col">Autor</th>
+            <th scope="col">Grado</th>
+            <th scope="col">Tipo</th>
+            <th scope="col">Archivo</th>
+            <th scope="col">Fecha - Hora</th>
+            <th scope="col"> </th>
+          </tr>
+        </thead>
+        <tbody>
+          {%for i in range(0, data.length)%}
+          <tr>
+            <th scope="row">
+              <a class="nav-link active" aria-current="page" data-toggle="tooltip" data-placement="bottom"
+                title="{{data.works[i].description}}"
+                href="/bcp/intranet/show/{{data.works[i].grade}}/{{data.works[i].namefile}}">
+                {{data.works[i].title }} </a>
+            </th>
+            <td>{{ data.works[i].author }}</td>
+            <td>{{ data.works[i].namegrade }}</td>
+            <td>{{ data.works[i].type }}</td>
+            <td>{{ data.works[i].namefile }}</td>
+            <td>{{ data.works[i].date_hm }}</td>
+            <td><a href="/bcp/work/del/{{data.works[i].id}}"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+              <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+              <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+            </svg></a></td>
+          </tr>
+          {%endfor%}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

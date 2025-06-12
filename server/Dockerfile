@@ -1,4 +1,4 @@
-FROM python:3
+FROM python:3.13-slim
 
 LABEL VERSION=1.1
 LABEL DESCRIPCION="Logia Server"
@@ -25,6 +25,6 @@ RUN cd /home/logia && \
 
 WORKDIR /home/logia/app
 
-EXPOSE 8085
+EXPOSE 58085
 
-CMD [ "python", "http-server.py", "8085"]
+CMD [ "python", "http-server.py", "58085"]
