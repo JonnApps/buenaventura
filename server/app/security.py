@@ -18,12 +18,13 @@ ROOT_DIR = os.path.dirname(__file__)
 class Security() :
     root_dir = None
     headers = None
-    url_base = 'https://dev.jonnattan.com/scraper'
+    url_base : str = None
     def __init__(self, root_dir = str(ROOT_DIR)) :
         try:
             self.root_dir = root_dir
             api_key = str(os.environ.get('LOGIA_SCRAPER_API_KEY','None'))
             authorization = str(os.environ.get('LOGIA_SCRAPER_AUTHORIZATION','None'))
+            self.url_base = str(os.environ.get('API_BASE_URL','None'))
             self.headers = {
                 'Content-Type': 'application/json', 
                 'Accept': 'application/json',
@@ -39,7 +40,7 @@ class Security() :
     #================================================================================================
     def verifiy_user_pass( self, username, password ) :
         logging.info("Rescato password para usuario: " + str(username) )
-        url = self.url_base + '/logia/login'
+        url = self.url_base + '/scraper/logia/login'
         user = 'Desconocido'
         grade = 0
         name = None
@@ -75,7 +76,7 @@ class Security() :
     #================================================================================================
     def get_grade( self, username ) :
         logging.info('Intento obtener grado de ' + str(username) )
-        url = self.url_base + '/logia/usergl/grade'
+        url = self.url_base + '/scraper/logia/usergl/grade'
         grade = 0
         try :
             m1 = time.monotonic_ns()
@@ -106,7 +107,7 @@ class Security() :
     def access_validate(self, username, grade) :
         access = False
         logging.info('Valido acceso a recurso de ' + str(grade) + ' a ' + str(username) )
-        url = self.url_base + '/logia/usergl/access'
+        url = self.url_base + '/scraper/logia/usergl/access'
         try :
             m1 = time.monotonic_ns()
             cipher = Cipher()
