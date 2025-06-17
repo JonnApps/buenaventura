@@ -17,7 +17,7 @@ except ImportError:
 
 class Works() :
     db = None
-    url_base = 'https://dev.jonnattan.com/docs'
+    url_base : str = None
     headers = None
     aprdz_forder_id : str = None
     cmpnr_forder_id : str = None
@@ -38,8 +38,9 @@ class Works() :
             self.db = pymysql.connect(host=host, port=port, 
                 user=user_bd, password=pass_bd, database=eschema, 
                 cursorclass=pymysql.cursors.DictCursor)
-
+                
             api_key = str(os.environ.get('DOCS_API_KEY','None'))
+            self.url_base = str(os.environ.get('API_BASE_URL','None'))
             authorization = str(os.environ.get('DOCS_API_AUTHORIZATION','None'))
             self.headers = {
                 'Content-Type': 'application/json', 
@@ -58,78 +59,26 @@ class Works() :
     def is_connect(self) :
         return self.db != None
     
-    def find_forders_ids(self) :
-
-        # Si ya los tenemos no se hace nada
-        if self.aprdz_forder_id != None and self.cmpnr_forder_id != None and self.mstrs_forder_id != None and self.works_mstrs != None and self.works_cmpnr != None and self.works_aprdz != None :
-            return
-
-        base_folder_id = str(os.environ.get('DRIVER_FOLDER_ID','None'))
-        try :
-            logging.info('Obtiene los Ids de las carpetas: ') 
-            data_json = {
-                'folder_id' : str(base_folder_id),
-                'filters' : [
-                    {
-                        "filter_name": "mimeType",
-                        "comparation": "=",
-                        "filter_value": "application/vnd.google-apps.folder",
-                    }
-                ],
-            }
-            resp = None
-            url = self.url_base + '/drive/list'
-            m1 = time.monotonic()
-            logging.info('URL: ' + url )
-            resp = requests.post(url, data = json.dumps({'data': data_json}), headers = self.headers, timeout = 15)
-            logging.info('Response ' + str( time.monotonic() - m1 )  + ' seg' )
-            if resp.status_code == 200 :
-                data_response = resp.json()
-                data_list = None
-                try :
-                    data_list = data_response['data']
-                except Exception as e:
-                    data_list = None
-                if data_list != None and len(data_list) == 3 :
-                    for doc in data_list :
-                        name_folder = str(doc['title'])
-                        if name_folder == 'Aprendiz' :
-                            self.aprdz_forder_id = str(doc['id'])
-                            logging.info('Carpeta Aprendiz: ' + str(self.aprdz_forder_id) ) 
-                            self.get_documents( self.works_aprdz, str(self.aprdz_forder_id) )
-                        if name_folder == 'Compañero' :
-                            self.cmpnr_forder_id = str(doc['id'])
-                            logging.info('Carpeta Companero: ' + str(self.cmpnr_forder_id) )
-                            self.get_documents( self.works_cmpnr, str(self.cmpnr_forder_id) )
-                        if name_folder == 'Maestro' :
-                            self.mstrs_forder_id = str(doc['id'])
-                            logging.info('Carpeta Maestro: ' + str(self.mstrs_forder_id) )  
-                            self.get_documents( self.works_mstrs, str(self.mstrs_forder_id) )
-                else :
-                    logging.error('Respuesta NULA ' )
-        except Exception as e:
-            print("ERROR find_forders_ids():", e)
-
 # ==============================================================================
     def get_works(self, grade_qh : int ) :
         works = []
         plans = []
         aux = []
         try :
-            self.find_forders_ids()
+            logging.info('Se obtienen los trabajos del grado: ' + str(grade_qh) ) 
             if self.is_connect() :
                 cursor = self.db.cursor()
                 sql = """select * from works w where grade <= %s and type in( 'WORK','PROGRAM' ) order by w.date desc"""
                 cursor.execute(sql, str(grade_qh) )
                 results = cursor.fetchall()
                 for row in results:
-                    if self.document_exist( str(row['namefile']), str(row['grade']) ) :
-                        doc = Work( row )
-                        if doc.type == 'WORK' :
-                            works.append(doc)
-                        if doc.type == 'PROGRAM' :
-                            aux.append(doc)
-                        
+                    doc = Work( row )
+                    if doc.type == 'WORK' :
+                        works.append(doc)
+                    if doc.type == 'PROGRAM' :
+                        aux.append(doc)
+            else :
+                logging.error('No hay conexion a la BD')
         except Exception as e:
             print("ERROR BD:", e)
         if aux != None and len(aux) :
@@ -138,27 +87,6 @@ class Works() :
                 plans.append(aux.pop()) 
         return works, plans
 
-# ==============================================================================
-    def document_exist(self, name_file : str, grade_doc : str ) :
-        exist = False
-        try :
-            if grade_doc == '1' :
-                exist = self.find_document( name_file, self.works_aprdz )
-            if grade_doc == '2' :
-                exist = self.find_document( name_file, self.works_cmpnr )
-            if grade_doc == '3' :
-                exist = self.find_document( name_file, self.works_mstrs )
-        except Exception as e:
-            print("ERROR document_exist():", e)
-        return exist
-# ==============================================================================
-    def find_document(self, name_file : str, documents : list ) :
-        exist = False
-        for doc in documents :
-            if doc['name'].lower().find(name_file.lower()) >= 0 :
-                exist = True
-                break
-        return exist
 # ==============================================================================
     def get_other_docs(self, grade_qh: int ) :
         works = []
@@ -169,9 +97,8 @@ class Works() :
                 cursor.execute(sql, str(grade_qh) )
                 results = cursor.fetchall()
                 for row in results:
-                    if self.document_exist( str(row['namefile']), str(row['grade']) ) :
-                        doc = Work( row )
-                        works.append(doc)
+                    doc = Work( row )
+                    works.append(doc)
         except Exception as e:
             print("ERROR BD:", e)
         return works
@@ -206,8 +133,8 @@ class Works() :
                     if work.grade == 3 :
                         small_photo = 'image/small_3.png'
 
-                sql = """insert into works (namefile, title, author, grade, date, type, description, small_photo) values (%s, %s, %s, %s, %s, %s, %s, %s)"""
-                cursor.execute(sql, ( work.namefile, work.title, work.author, str(work.grade), date.strftime('%Y-%m-%d %H:%M:%S'), work.type, work.description, small_photo ) )
+                sql = """insert into works (namefile, title, author, grade, date, type, description, small_photo, md5sum) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+                cursor.execute(sql, ( work.namefile, work.title, work.author, str(work.grade), date.strftime('%Y-%m-%d %H:%M:%S'), work.type, work.description, small_photo, work.md5sum ) )
                 self.db.commit()
                 success = True
         except Exception as e:
@@ -227,91 +154,102 @@ class Works() :
                 print("ERROR delete():", e)
         return success
 
-    def search_doc(self, name_file : str, folder_id : str ) :
-        document_id : str = None
+    def upload(self, request) :
+        data_response = { 'md5': None, 'message': 'Servicio ejecutado exitosamente', 'size': 0 }
+        http_code : int = 201
+        m1 = time.monotonic()
+        file_path : str = None
         try :
-            logging.info('Busca pdf: ' + name_file + ' en la carpeta: ' + folder_id) 
-            # primero busca en la carpeta de archivos del grado
-            data_json = {
-                'folder_id' : folder_id,
-                'filters' : [
-                    {
-                        "filter_name": "title",
-                        "comparation": "contains",
-                        "filter_value": name_file,
-                    },
-                    {
-                        "filter_name": "mimeType",
-                        "comparation": "=",
-                        "filter_value": "application/pdf",
-                    }
-                ],
-                'only_id': True
+            request_data = request.get_json()
+            # payload para api de documentos
+            json_data = {
+                'type':  'clear',
+                'data': {
+                    'name':  str(request_data['file_name']),
+                    'type': str(request_data['file_type']),
+                    'fileb64': str(request_data['file_data']),
+                    'folder': str(request_data['file_folder']),
+                }
             }
+            logging.info('Solicita subir archivo ' + str(request_data['file_name']) + ' en /' + str(request_data['file_folder']) )
             resp = None
-            url = self.url_base + '/drive/search'
-            m1 = time.monotonic()
-            logging.info('URL: ' + url )
-            resp = requests.post(url, data = json.dumps({'data': data_json}), headers = self.headers, timeout = 15)
+            url = self.url_base + '/docs/s3/upload'
+            logging.info('URL Post: ' + url )
+            resp = requests.post(url, data = json.dumps(json_data), headers = self.headers, timeout = 15)
             logging.info('Response ' + str( time.monotonic() - m1 )  + ' seg' )
-            if resp.status_code == 200 or resp.status_code == 201 :
-                data_response = resp.json()
-                data_list = None
+            http_code = resp.status_code
+            if http_code == 201 :
+                response = resp.json()
+                logging.info('Response ' + str( response )  )
+                data_file = None
                 try :
-                    data_list = data_response['data']
+                    data_file = response['data']
                 except Exception as e:
-                    data_list = None
-                if data_list != None :
-                    if len(data_list) > 0 :
-                       document_id = str(data_list[0]['id'])
+                    data_file = None
+                
+                if data_file != None :
+                    logging.info('Documento de ' + str(data_file['size_bytes']) + ' bytes subido') 
+
+                    data_response['md5'] = str(data_file['md5'])
+                    data_response['size'] = int(str(data_file['size_bytes']))
+                    data_response['message'] = 'Documento subido exitosamente'
+                else :
+                    logging.error('Respuesta API NULA' )
         except Exception as e:
-            print("ERROR serach_doc(): ", e)
-        return document_id
+            logging.error('Error: ' + str(e) )
+            http_code = 403
+            data_response = { 'md5': None, 'size': 0, 'message': 'Error: ' + str(e) }
 
-    def get_folder_id_by_grade(self, grade : str) :
-        if grade == '1' :
-            return self.aprdz_forder_id
-        if grade == '2' :
-            return self.cmpnr_forder_id
-        if grade == '3' :
-            return self.mstrs_forder_id
-        return None
+        logging.info("Servicio Ejecutado en " + str(time.monotonic() - m1) + " sec." )
+        return data_response, http_code 
 
-    def get_pdf_file(self, document_grade : str, name_file : str, username : str) :
+
+
+# ==============================================================================
+# Se obtiene el PDF del documento
+# ==============================================================================
+    def get_pdf_file(self, id_work : str) :
         data_base64 = None 
         mime_type = None
+        doc : Work = None
+        # primero se obtiene el trabajo
         try :
-            self.find_forders_ids()
-            id_folder : str = self.get_folder_id_by_grade(document_grade)
-            if id_folder == None :
-                logging.error('No se encontro la carpeta del grado: ' + document_grade )
-                return data_base64, mime_type
-
-            id_document = self.search_doc(name_file, id_folder)
-            if id_document != None :
-                logging.info('Documento encontrado ID: ' + str(id_document) ) 
-                data_base64, mime_type = self.get_document(id_document)
+            logging.info('Se obtienen la url del documento Id: ' + str(id_work) ) 
+            if self.is_connect() :
+                cursor = self.db.cursor()
+                sql = """select * from works w where id = %s"""
+                cursor.execute(sql, str(id_work) )
+                results = cursor.fetchall()
+                for row in results:
+                    doc = Work( row )
+                if doc != None :
+                    data_json = {
+                        'data' : {
+                            'folder' : doc.namegrother,
+                            'name_file' : doc.namefile,
+                            'md5sum' : doc.md5sum
+                        },
+                        'type' : 'clear'
+                    }
+                    data_base64, mime_type = self.get_document(data_json)  
+            else :
+                logging.error('No hay conexion a la BD')
         except Exception as e:
-            print("ERROR get_pdf_file():", e)
+            print("ERROR BD:", e)
         return data_base64, mime_type
 
-    def get_document(self, id_document: str) :
+    def get_document(self, data_json: str) :
         data_response = None
         mime_type = None
         try :
-            logging.info('Solicita Buscar Documento ID: ' + id_document) 
-            data_json = {
-                'file_id' : id_document,
-                'require_detail' : False,
-                'require_doc' : True
-            }
+            logging.info('Solicita Buscar Documento ID: ' + str(data_json)) 
             resp = None
-            url = self.url_base + '/drive/read'
+            url = self.url_base + '/docs/s3/read'
             m1 = time.monotonic()
-            logging.info('URL: ' + url )
-            resp = requests.post(url, data = json.dumps({'data': data_json}), headers = self.headers, timeout = 15)
+            logging.info('URL Post: ' + url )
+            resp = requests.post(url, data = json.dumps(data_json), headers = self.headers, timeout = 15)
             logging.info('Response ' + str( time.monotonic() - m1 )  + ' seg' )
-            if resp.status_code == 200 or resp.status_code == 201 :
+            if resp.status_code == 200 :
                 data_response = resp.json()
                 data_file = None
                 try :
@@ -371,12 +309,14 @@ class Work() :
     author = None
     grade = 0
     namegrade = None
+    namegrother = None
     namegr = None
     date = None
     date_hm = None
     type = None
     description = None
     small_photo = None
+    md5sum = None
 
     def __init__(self, row ) :
         self.id = int(row['id'])
@@ -387,16 +327,20 @@ class Work() :
         self.type = str(row['type'])
         self.description = str(row['description'])
         self.small_photo = str(row['small_photo'])
+        self.md5sum = str(row['md5sum'])
 
         if self.grade == 1 :
             self.namegrade = 'Aprendiz'
             self.namegr = 'Primer Grado'
+            self.namegrother = 'primero'
         elif self.grade == 2 :
             self.namegrade = 'Compañero'
             self.namegr = 'Segundo Grado'
+            self.namegrother = 'segundo'
         elif self.grade == 3 :
             self.namegrade = 'Maestro'
             self.namegr = 'Tercer Grado'
+            self.namegrother = 'tercero'
         else :
             self.namegrade = 'Un dios'
             self.namegr = '33 avo Grado'
@@ -418,3 +362,5 @@ class Work() :
         self.namegr = None
         self.description = None
         self.small_photo = None
+        self.md5sum = None
+        self.namegrother = None

@@ -2,8 +2,9 @@
 
 {% block addhead %}
   <script src="https://js.hcaptcha.com/1/api.js" async defer> </script>
-  <script language="JavaScript" type="text/javascript" src="https://logia.buenaventuracadiz.cl/bcp/static/js/logia.js"
-    integrity="sha384-mLFUXpUaS4tqKbPnjYQ15cqazdOKtoYgnO/cd6CcQq9LJm1ckpZd7lUC8+3UGl0J">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script language="JavaScript" type="text/javascript" src="/bcp/static/js/logia.js"
+    integrity="sha384-zppKaW9usQBYjhHIIi3Rr8QDEfocaDnhbn2lzZHb4AheCbWcTYakoz20zD0u0DF4">
     </script>
 
   <script type="text/javascript">
@@ -35,9 +36,9 @@
       <div class="col">
         <div class="mb-3">
           <label for="username" class="form-label">Email</label>
-          <input type="text" class="form-control" id="username" placeholder="Email de registro en GLCh" name="username">
+          <input type="text" class="form-control" id="username" autocomplete="on" placeholder="Email de registro en GLCh" name="username">
           <label for="pass" class="form-label">Password</label>
-          <input type="password" class="form-control" id="pass" placeholder="Password de registro en GLCH" name="password">
+          <input type="password" class="form-control" id="pass" autocomplete="on" placeholder="Password de registro en GLCH" name="password">
           <input type="text" hidden class="form-control" id="csrf_token" readonly name="csrf_token" value="{{csrf_token()}}">
         </div>
         <div class="h-captcha" data-callback="captchaValueToken" lh="es" data-open-callback="open" data-error-callback="err"

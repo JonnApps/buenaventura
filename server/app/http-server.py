@@ -109,9 +109,8 @@ def intranet_pdf(subpath):
         'data'    : None,
         'type'    : 'application/pdf'
     }
-    grade_docname = str(subpath)
     name_qh = None
-    logging.info('Solicita Mostrar Documento: ' + grade_docname )
+    maintainer = False
     cookie = request.cookies.get('SESION_RL')
     if cookie != None :
         cipher = Cipher()
@@ -124,16 +123,18 @@ def intranet_pdf(subpath):
             name_qh = str(datos[2].strip())
             maintainer = bool(datos[3].strip())
             logging.info('User at the cookie: ' + str(user_name) + ', grade ' + str(grade_qh) + ', maintainer ' + str(maintainer) )
-    paths = str(grade_docname).split('/')
-    if len(paths) == 2 :
-        documents = Works()
-        data_doc, type_doc = documents.get_pdf_file( paths[0].strip(),  paths[1].strip(), user_name )
-        del documents
-        if data_doc != None and type_doc != None :
-            data = {
-                'data'    : data_doc,
-                'type'    : type_doc
-            }
+        # array del path que trae el nombre, grado e id del doc
+        paths = str(subpath).split('/')
+        logging.info('Solicita Mostrar Documento: ' + str(subpath) + ', Length: ' + str(len(paths)) )
+        if len(paths) == 3 :
+            documents = Works()
+            data_doc, type_doc = documents.get_pdf_file(paths[0].strip())
+            del documents
+            if data_doc != None and type_doc != None :
+                data = {
+                    'data'    : data_doc,
+                    'type'    : type_doc
+                }
     return render_template( 'show.html', doc=data, name=name_qh, maintainer=maintainer, user_name=user_name), 200
 
 # ===============================================================================
@@ -189,6 +190,8 @@ def login_verify():
         'maintainer' : bool(maintainer),
         'username' : username
     }
+    logging.info('Data for intranet: ' + str(data) )
+
     response = make_response( render_template('intranet.html', data = data ) )
     cookie : str = ''
     if user != None and grade_qh > 0 and grade_qh <= 3 :
@@ -402,13 +405,48 @@ def del_work( id ):
                 }
     return render_template('maintainer.html', data = data, captcha_key=str(CAPTCHA_KEY), msg=msg)
 
+
+@app.route('/bcp/work/upload', methods=['POST'])
+@csrf.exempt
+def upload_work(): 
+    cookie = request.cookies.get('SESION_RL')
+    data_response = {'md5' : '', 'filename' : ''}
+    status_code = 200
+    if cookie != None :
+        cipher = Cipher()
+        data_str = cipher.aes_decrypt(cookie)
+        del cipher
+        datos = data_str.split('&')
+        if len(datos) == 4 :
+            data_cookie = {
+                'user_name' : str(datos[0].strip()),
+                'grade_qh': int(datos[1].strip()),
+                'name_qh': str(datos[2].strip()),
+                'maintainer': bool(datos[3].strip()),
+            }
+            work = Works()
+            data_response, status_code = work.upload(request)
+            del work
+            logging.info('User at the cookie: ' + str(data_cookie['user_name']) + ', grade ' + str(data_cookie['grade_qh']) + ', maintainer ' + str(data_cookie['maintainer']) )
+    return jsonify(data_response), status_code
+
 @app.route('/bcp/work/add', methods=['POST'])
 def add_work(): 
     msg : str = 'Archivo agregado correctamente'  
-    d = str(request.form['date'])
-    h = str(request.form['hour'])
-    date_str = d + ' ' + h + ':00'
-    date : datetime = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+    date : datetime = None
+    try :
+        d = str(request.form['date'])
+        h = str(request.form['hour'])
+        if len(h) == 0 :
+            h = '00:00'
+        date_str = d + ' ' + h + ':00'
+        date = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+        logging.info('Date: ' + str(date))
+    except Exception as e :
+        logging.error(e)
+        date = datetime.now()
+        logging.info('Date: Now() ')
+    
     work = Work(
         {
             'id' : -1,
@@ -419,7 +457,8 @@ def add_work():
             'type' : str(request.form['type']),
             'date' : date.strftime('%Y-%m-%d %H:%M:%S'),
             'description' : str(request.form['description']),
-            'small_photo' : ''
+            'md5sum' : str(request.form['md5doc']),
+            'small_photo' : None,
         }
     )
     
