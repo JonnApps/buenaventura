@@ -257,7 +257,7 @@ class Works() :
                 except Exception as e:
                     data_file = None
                 if data_file != None :
-                    logging.info('Documento encontrado de ' + str(data_file['size_bytes']) + ' bytes') 
+                    logging.info('Documento encontrado de ' + str(data_file['size_bytes']) + ' bytes' + ' type: ' + str(data_file['type']) ) 
                     # data_response = base64.b64decode(data_file['file_b64'])
                     data_response = data_file['file_b64']
                     mime_type = data_file['type']
