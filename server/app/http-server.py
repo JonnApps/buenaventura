@@ -128,7 +128,7 @@ def intranet_pdf(subpath):
         logging.info('Solicita Mostrar Documento: ' + str(subpath) + ', Length: ' + str(len(paths)) )
         if len(paths) == 3 :
             documents = Works()
-            data_doc, type_doc = documents.get_pdf_file(paths[0].strip())
+            data_doc, type_doc = documents.get_pdf_file(paths[0].strip(), paths[1].strip(), paths[2].strip())
             del documents
             if data_doc != None and type_doc != None :
                 data = {
@@ -313,15 +313,31 @@ def more():
         return redirect('/bcp/login'), 302
     grade_name = get_name(grade_qh)
     if grade_name != None :
-        documents = Works()
-        works = documents.get_other_docs(grade_qh)
-        del documents  
+        
+        work = Works()
+        works = work.get_other_docs(grade_qh)
+        drive_works : list = work.get_drive_documents(str(grade_qh))
+        del work
+
+        if drive_works != None :
+            logging.info('Hay ' + str(len(drive_works)) + ' documentos en google drive para grado ' + str(grade_qh) )  
         if works != None:
             logging.info('Hay ' + str(len(works)) + ' documentos adicionales para grado ' + str(grade_qh) )
+        data = {
+            'works' : works,
+            'lengthw' : len(works),
+            'drive_works' : drive_works,
+            'lengthd' : len(drive_works),
+            'grade' : grade_name,
+            'name' : name_qh,
+            'maintainer' : maintainer,
+            'username' : user_name
+        }
+        
     else :
         return redirect('/bcp/login'), 302
       
-    return render_template('more.html', grade=grade_name, documents=works, len=len(works), name=name_qh, maintainer=maintainer, username=user_name)
+    return render_template('more.html', data=data )
 
 def get_name(grade: int) :
     if grade == 1 :
@@ -446,14 +462,24 @@ def add_work():
         logging.error(e)
         date = datetime.now()
         logging.info('Date: Now() ')
+
+    grade_doc : str = '1'
+    try :
+        if request.form['grade'] != None :
+            grade_doc = str(request.form['grade'])
+    except Exception as e :
+        logging.error(e)
+        grade_doc = '1'
     
+    logging.info('Form: ' + str(request.form) )
+
     work = Work(
         {
             'id' : -1,
             'title' : str(request.form['title']),
             'author' : 'QH:. ' + str(request.form['author']),
             'namefile' : str(request.form['namefile']),
-            'grade' : int(request.form['grade']),
+            'grade' : int(grade_doc),
             'type' : str(request.form['type']),
             'date' : date.strftime('%Y-%m-%d %H:%M:%S'),
             'description' : str(request.form['description']),
@@ -560,6 +586,34 @@ def aniversario():
     name = 'Anonimo'
     return render_template( 'aniversario.html', name=name, grade=grade )
 
+
+@csrf.exempt
+@app.route('/bcp/drive/<path:file_path>', methods=['GET'])
+def drive_files( file_path : str ):
+    name_file : str = ''
+    local_path : str = 'static/image/photos/drive/'
+    values = file_path.split('/')
+    if len(values) > 1 :
+        name_file = values[len(values) - 1]
+        local_path += file_path.replace(name_file, '')
+    else :
+        name_file = file_path
+    if not local_path.endswith('/') :
+        local_path += '/'
+    # verifica que el archivo exista localmente
+    path = os.path.join(ROOT_DIR,  local_path )
+    logging.info("Busca archivo Localmente: " + name_file + ' en ' + str(path) )
+    if os.path.exists(local_path + name_file) :
+        logging.info("Encontrado Localmente !!!" )
+        return send_from_directory(local_path, name_file)
+    else :
+        logging.info("Archivo no encontrado localmente, se busca en Drive " )
+        work = Works()
+        success = work.get_drive_document(local_path, name_file)
+        if success :
+            return send_from_directory(local_path, str(name_file)) 
+    return jsonify({}), 404
+
 # ===============================================================================
 @app.route('/bcp/reublanca', methods=['POST','GET','PUT'])
 def reublanca():
@@ -624,12 +678,14 @@ def stylescss(stylesfile):
 @csrf.exempt
 def show_static_file(file_path) :
     values = file_path.split('/')
+    name : str = None
     if len(values) > 1 :
-        file_path = values[0]
-        name = values[1]
+        name = values[len(values) - 1]
+        file_path = file_path.replace(name, '')
     else :
         name = file_path
     file_path = os.path.join(ROOT_DIR, 'static/' + str(file_path))
+    logging.info("Static File: " + str( file_path ) )
     return send_from_directory(file_path, str(name))
 
 # ===============================================================================

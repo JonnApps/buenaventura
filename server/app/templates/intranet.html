@@ -1,6 +1,32 @@
 
 {% extends 'menu.html' %}
 
+{% block menu_libraries %} 
+  {% if data %} 
+    {% if data.grade == 1 %}  
+       <li class="nav-item">
+          <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Biblioteca de Nextcloud"
+          href="https://next.glchile.cl/nextcloud/index.php/s/aeAzrk57EfQqscg" target="_blank" rel="noopener noreferrer ">Biblioteca Aprendices</a>
+        </li>
+    {% elif data.grade == 2 %}  
+       <li class="nav-item">
+          <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Biblioteca de Nextcloud"
+          href="https://next.glchile.cl/nextcloud/index.php/s/355bCnHk69L6oWX" target="_blank" rel="noopener noreferrer ">Biblioteca Compañeros</a>
+        </li>
+    {% elif data.grade == 3 %}  
+       <li class="nav-item">
+          <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Biblioteca de Nextcloud"
+          href="https://next.glchile.cl/nextcloud/index.php/s/tDLCNxbywGLJbrn" target="_blank" rel="noopener noreferrer ">Biblioteca Maestros</a>
+        </li>
+    {% else %}
+      <li class="nav-item">
+        <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Biblioteca de Nextcloud"
+          href="" target="_blank" rel="noopener noreferrer ">|</a>
+      </li>
+    {% endif %}
+  {% endif %}
+{% endblock %}
+
 {% block maintainer %} 
   {% if data %} 
     {% if data.maintainer == True %} 
@@ -21,7 +47,7 @@
 {% endblock %}
 
 {% block content %}
-  {% if data.grade >=1 and data.grade <= 3 %}
+  {% if data.grade >=1 and data.grade <=3 %}
   <div class="row">
     <div class="col">
       <h4>Próximas Fechas:</h4>

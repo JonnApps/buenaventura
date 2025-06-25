@@ -1,5 +1,31 @@
 {% extends 'menu.html' %}
 
+{% block menu_libraries %} 
+  {% if grade %} 
+    {% if grade == 'Primer Grado' %}  
+       <li class="nav-item">
+          <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Biblioteca de Nextcloud"
+          href="https://next.glchile.cl/nextcloud/index.php/s/aeAzrk57EfQqscg" target="_blank" rel="noopener noreferrer ">Biblioteca Aprendices</a>
+        </li>
+    {% elif grade == 'Segundo Grado' %}  
+       <li class="nav-item">
+          <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Biblioteca de Nextcloud"
+          href="https://next.glchile.cl/nextcloud/index.php/s/355bCnHk69L6oWX" target="_blank" rel="noopener noreferrer ">Biblioteca Compañeros</a>
+        </li>
+    {% elif grade == 'Tercer Grado' %}  
+       <li class="nav-item">
+          <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Biblioteca de Nextcloud"
+          href="https://next.glchile.cl/nextcloud/index.php/s/tDLCNxbywGLJbrn" target="_blank" rel="noopener noreferrer ">Biblioteca Maestros</a>
+        </li>
+    {% else %}
+      <li class="nav-item">
+        <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Biblioteca de Nextcloud"
+          href="" target="_blank" rel="noopener noreferrer ">|</a>
+      </li>
+    {% endif %}
+  {% endif %}
+{% endblock %}
+
 {% block maintainer %} 
   {% if maintainer and username %} 
     <li class="nav-item">
@@ -59,21 +85,21 @@
                 </div>
             </div>
         </div>
-        <div class="row" style="padding: 50px 0px 0px 0px;" >
-            <div class="col" align="center">
+        <div class="row" style="padding: 50px 300px 300px 300px;" >
+            <div class="col">
                  <!-- Carousel -->
                  <div id="demo" class="carousel slide" data-bs-ride="carousel">
                     <!-- Indicators/dots -->
                     <div class="carousel-indicators">
-                    {%for i in range(290, 404)%}
-                    <button type="button" data-bs-target="#demo" data-bs-slide-to="{{i-289}}" {% if i == 290 %}class="active"{% endif %}></button>
+                    {%for i in range(1, 5)%}
+                    <button type="button" data-bs-target="#demo" data-bs-slide-to="{{i-1}}" {% if i == 1 %}class="active"{% endif %}></button>
                     {%endfor%}
                     </div>
                     <!-- The slideshow/carousel -->
                     <div class="carousel-inner">
-                    {%for i in range(290, 404)%}
-                        <div class="carousel-item {% if i == 290 %}active{% endif %}">
-                            <img src="https://logia.buenaventuracadiz.cl/logia/images/DSC00{{i}}.JPG" alt="Pronto acá un carrusel de fotos de Logia" class="d-block w-100">
+                    {%for i in range(1, 5)%}
+                        <div class="carousel-item {% if i == 1 %}active{% endif %}">
+                            <img src="https://logia.buenaventuracadiz.cl/bcp/image/photos/bcp_{{i}}.jpeg" alt="Pronto acá un carrusel de fotos de Logia" class="d-block w-100">
                         </div>
                     {%endfor%}
                     </div>

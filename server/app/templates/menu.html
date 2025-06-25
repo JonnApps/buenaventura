@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>RL 188 - Buenaventura Cadiz Patiño</title>
+    <title>BCP - RL 188</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
@@ -39,15 +39,15 @@
                             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                                 <li class="nav-item active">
                                     <a class="nav-link active" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Consigue los archivos PDF de los trabajos de nuestra logia"
-                                        href="{{ url_for('intranet') }}">Intranet BCP</a>
+                                        href="{{ url_for('intranet') }}">Planchas</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Documentos que pueden ayudar a realizar trabajos"
+                                        href="{{ url_for('more') }}">Complementario</a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Videos y Fotografias de nuestra logia y los QQHH"
                                     href="{{ url_for('youtube') }}" >Multimedia</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Documentos que pueden ayudar a realizar trabajos"
-                                        href="{{ url_for('more') }}">Material Adicional</a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Dirigete al blog de nuestra fundación, con todos los documentos relacionados"
@@ -55,12 +55,9 @@
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Gran Logia de Chile"
-                                        href="https://www.granlogia.cl" target="_blank" rel="noopener noreferrer ">Gran Logia de Chile</a>
+                                        href="https://www.granlogia.cl" target="_blank" rel="noopener noreferrer ">Gran Logia</a>
                                 </li>
-                                <li class="nav-item">
-                                    <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Información de los Ágapes"
-                                        href="https://next.glchile.cl/nextcloud/index.php/s/aeAzrk57EfQqscg" target="_blank" rel="noopener noreferrer ">Biblioteca GLCh</a>
-                                </li>
+                                {% block menu_libraries %} {% endblock %}
                                 {% block maintainer %} {% endblock %}
                             </ul>
                         </div>

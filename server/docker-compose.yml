@@ -6,6 +6,7 @@ services:
       restart: always
       volumes:
         - ./app:/home/logia/app
+        - ../../../fotografias/bcp:/home/logia/app/static/image/photos
       ports:
         - "58085:58085"
       env_file:

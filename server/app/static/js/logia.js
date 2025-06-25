@@ -70,10 +70,10 @@ async function uploadFile() {
   const fileInput = document.getElementById('namefile');
   const statusDiv = document.getElementById('status_file');
   const md5 = document.getElementById('md5doc');
-  const grade = document.getElementById('grade').value;
+  const grade = document.getElementById('grade');
   
-  let folder = 'docs/logia';
-  switch (grade) {
+  let folder = 'docs';
+  switch (grade.value) {
       case '1' : folder = folder + '/primero'; break;
       case '2' : folder = folder + '/segundo'; break;
       case '3' : folder = folder + '/tercero'; break;
@@ -128,6 +128,7 @@ async function uploadFile() {
               statusDiv.className = 'success';
               statusDiv.innerHTML = `<strong>¡Éxito!</strong> ${result.message}`;
               md5.value = result.md5;
+              // grade.disabled = true;
           } else {
               statusDiv.className = 'error';
               statusDiv.innerHTML = `<strong><span style="color: red;">Error:</span></strong> ${result.error || 'Algo salió mal'}`;
