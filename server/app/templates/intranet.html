@@ -48,6 +48,7 @@
 
 {% block content %}
   {% if data.grade >=1 and data.grade <=3 %}
+<div class="container">
   <div class="row">
     <div class="col">
       <h4>Próximas Fechas:</h4>
@@ -82,7 +83,7 @@
   </div>
   <div class="row">
     <div class="col">
-      <h4>Trabajos:</h4>
+      <h4>Trabajos de BCP</h4>
     </div>
   </div>
   <div class="row">
@@ -90,7 +91,7 @@
       <table class="table">
         <thead>
           <tr style="text-align:left; background-color: rgb(124, 163, 142);">
-            <th scope="col">Titulo</th>
+            <th scope="col">Trabajo</th>
             <th scope="col">Autor</th>
             <th scope="col">Grado</th>
             <th scope="col">Fecha</th>
@@ -115,7 +116,30 @@
         </tbody>
       </table>
     </div>
+  </div>  
+   <div class="row">
+    <nav aria-label="Navegación de páginas de ejemplo">
+      <ul class="pagination justify-content-center">
+        <li class="page-item disabled">
+          <a class="page-link" href="#" aria-label="Anterior">
+            <span aria-hidden="true">&laquo;</span>
+          </a>
+        </li>
+        <li class="page-item" aria-current="page"><a class="page-link" href="#">1</a></li>
+        <li class="page-item"><a class="page-link" href="#">2</a></li>
+        <li class="page-item" active><a class="page-link" href="#">3</a></li>
+        <li class="page-item active"><a class="page-link" href="#">4</a></li>
+        <li class="page-item"><a class="page-link" href="#">5</a></li>
+        <li class="page-item">
+          <a class="page-link" href="#" aria-label="Siguiente">
+            <span aria-hidden="true">&raquo;</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+    </div>
   </div>
+
   {% else %}
   <div class="row" style="padding: 10px 0px 0px 0px;">
     <div class="col">

@@ -313,27 +313,21 @@ def more():
         return redirect('/bcp/login'), 302
     grade_name = get_name(grade_qh)
     if grade_name != None :
-        
         work = Works()
-        works = work.get_other_docs(grade_qh)
-        drive_works : list = work.get_drive_documents(str(grade_qh))
+        works = work.get_additional_works(grade_qh)
+        work.process_drive_document(str(grade_qh))
         del work
-
-        if drive_works != None :
-            logging.info('Hay ' + str(len(drive_works)) + ' documentos en google drive para grado ' + str(grade_qh) )  
         if works != None:
             logging.info('Hay ' + str(len(works)) + ' documentos adicionales para grado ' + str(grade_qh) )
+        
         data = {
             'works' : works,
-            'lengthw' : len(works),
-            'drive_works' : drive_works,
-            'lengthd' : len(drive_works),
+            'length' : len(works),
             'grade' : grade_name,
             'name' : name_qh,
             'maintainer' : maintainer,
             'username' : user_name
         }
-        
     else :
         return redirect('/bcp/login'), 302
       
@@ -484,6 +478,8 @@ def add_work():
             'date' : date.strftime('%Y-%m-%d %H:%M:%S'),
             'description' : str(request.form['description']),
             'md5sum' : str(request.form['md5doc']),
+            'source' : 'S3',
+            # 'url': str(request.form['url']),
             'small_photo' : None,
         }
     )
@@ -505,7 +501,7 @@ def add_work():
                 documents = Works()
                 success = documents.save( work )
                 works : list = []
-                if success :
+                if success != None :
                     works = documents.get_all_docs()
                 else :
                     msg = 'Error agregando archivo, intente nuevamente'
@@ -586,34 +582,6 @@ def aniversario():
     name = 'Anonimo'
     return render_template( 'aniversario.html', name=name, grade=grade )
 
-
-@csrf.exempt
-@app.route('/bcp/drive/<path:file_path>', methods=['GET'])
-def drive_files( file_path : str ):
-    name_file : str = ''
-    local_path : str = 'static/image/photos/drive/'
-    values = file_path.split('/')
-    if len(values) > 1 :
-        name_file = values[len(values) - 1]
-        local_path += file_path.replace(name_file, '')
-    else :
-        name_file = file_path
-    if not local_path.endswith('/') :
-        local_path += '/'
-    # verifica que el archivo exista localmente
-    path = os.path.join(ROOT_DIR,  local_path )
-    logging.info("Busca archivo Localmente: " + name_file + ' en ' + str(path) )
-    if os.path.exists(local_path + name_file) :
-        logging.info("Encontrado Localmente !!!" )
-        return send_from_directory(local_path, name_file)
-    else :
-        logging.info("Archivo no encontrado localmente, se busca en Drive " )
-        work = Works()
-        success = work.get_drive_document(local_path, name_file)
-        if success :
-            return send_from_directory(local_path, str(name_file)) 
-    return jsonify({}), 404
-
 # ===============================================================================
 @app.route('/bcp/reublanca', methods=['POST','GET','PUT'])
 def reublanca():
@@ -686,6 +654,14 @@ def show_static_file(file_path) :
         name = file_path
     file_path = os.path.join(ROOT_DIR, 'static/' + str(file_path))
     logging.info("Static File: " + str( file_path ) )
+    if not os.path.exists(file_path + str(name)) :
+        logging.info('Archivo no encontrado: ' + str( file_path ) + str(name) )
+        work = Works()
+        success = work.get_drive_document(file_path, name)
+        del work
+        if success :
+            logging.info('Archivo ' + str( file_path ) + str(name) + ' descargado...'  )
+
     return send_from_directory(file_path, str(name))
 
 # ===============================================================================

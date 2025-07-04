@@ -6,13 +6,29 @@ services:
       restart: always
       volumes:
         - ./app:/home/logia/app
-        - ../../../fotografias/bcp:/home/logia/app/static/image/photos
+        - statics_data_images:/home/logia/app/static/image
+        - statics_data_docs:/home/logia/app/static/docs
       ports:
         - "58085:58085"
       env_file:
       - ../../envs/logia.env
       networks:
         - db-net
+      # entrypoint: ["/bin/sh", "-c", "chmod -R 777 /home/logia/app/static && chown -R 1000:1000 /home/logia/app/static && exec python http-server.py 58085"]
       # command: tail -f /home/logia/requirements.txt
 networks:
   db-net:
+
+volumes:
+  statics_data_images:
+    driver: local
+    driver_opts:
+      type: none 
+      o: bind 
+      device: /home/jonnattan/source/buenaventura/externos/image 
+  statics_data_docs:
+    driver: local
+    driver_opts: 
+      type: none
+      o: bind 
+      device: /home/jonnattan/source/buenaventura/externos/docs
