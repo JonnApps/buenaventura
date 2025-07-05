@@ -1,45 +1,86 @@
 {% extends 'menu.html' %}
 
-{% block maintainer %} 
-  {% if data %} 
-    {% if data.maintainer %} 
-      <li class="nav-item">
-        <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Administrar Trabajos que se mostraran en intranet""
-          href="/bcp/maintainer?user={{data.user_name}}">Administrar</a>
-      </li>
-    {% endif %}
-  {% endif %}
+{% block menu_libraries %}
+{% if data %}
+{% if data.grade_qh == 1 %}
+<li class="nav-item">
+  <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Biblioteca de Nextcloud"
+    href="https://next.glchile.cl/nextcloud/index.php/s/aeAzrk57EfQqscg" target="_blank"
+    rel="noopener noreferrer ">Biblioteca Aprendices</a>
+</li>
+{% elif data.grade_qh == 2 %}
+<li class="nav-item">
+  <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Biblioteca de Nextcloud"
+    href="https://next.glchile.cl/nextcloud/index.php/s/355bCnHk69L6oWX" target="_blank"
+    rel="noopener noreferrer ">Biblioteca Compañeros</a>
+</li>
+{% elif data.grade_qh == 3 %}
+<li class="nav-item">
+  <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Biblioteca de Nextcloud"
+    href="https://next.glchile.cl/nextcloud/index.php/s/tDLCNxbywGLJbrn" target="_blank"
+    rel="noopener noreferrer ">Biblioteca Maestros</a>
+</li>
+{% else %}
+<li class="nav-item">
+  <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom" title="Biblioteca de Nextcloud"
+    href="" target="_blank" rel="noopener noreferrer ">|</a>
+</li>
+{% endif %}
+{% endif %}
 {% endblock %}
 
-{% block nameqh %} 
-  {% if data.name_qh %} 
-    <button class="btn btn-sm btn-outline-secondary" type="button"> 
-        <a class="nav-link" href="/bcp/logout">{{data.name_qh}} </a> 
-     </button> 
-  {% endif %} 
+{% block maintainer %}
+{% if data %}
+{% if data.maintainer %}
+<li class="nav-item">
+  <a class="nav-link" aria-current="page" data-toggle="tooltip" data-placement="bottom"
+    title="Administrar Trabajos que se mostraran en intranet""
+          href=" /bcp/maintainer?user={{data.user_name}}">Administrar</a>
+</li>
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block nameqh %}
+{% if data.name_qh %}
+<button class="btn btn-sm btn-outline-secondary" type="button">
+  <a class="nav-link" href="/bcp/logout">{{data.name_qh}} </a>
+</button>
+{% endif %}
 {% endblock %}
 
 {% block content %}
 
-<div class="row" align="justify" style="padding: 50px 0px 0px 0px;">
-  <div class="col" style="border: none;">
-    <h4>Buenaventura Cadiz Patiño N° 188 </h4><br>
-    Nuestra logia se remonta a fines del año 1999 y el levantamiento de columnas al 19 de Noviembre de 2001. Se creo con el fin de un día ser un complemento espiritual a los
-    estudiantes del <a href="http://www.bancoestudiantil.cl"  target="_blank" rel="noopener noreferrer" > Banco de Solidaridad Estudiantil </a> ya que éste en su misión no contempla este 
-    tipo de aporte. <br> Actualmente somos 58 miembros y tenemos una personalidad jurídica con la Fundación
-    <a href="https://www.buenaventuracadiz.cl"  target="_blank" rel="noopener noreferrer" > Buenaventura Cadiz Patiño </a> a la cual todos pertenecemos.
+<div class="home-logia">
+  <div class="row">
+    <div class="col">
+      <h4>Buenaventura Cádiz Patiño N° 188 </h4><br>
+      Nuestra logia se remonta a fines del año 1999 y el levantamiento de columnas al 19 de Noviembre de 2001. Se creó
+      con el fin de un día ser un complemento espiritual a los estudiantes del <a href="http://www.bancoestudiantil.cl"
+        target="_blank" rel="noopener noreferrer">Banco de Solidaridad Estudiantil</a> ya que éste, en su misión, no
+      contempla este tipo de aporte. <br> Actualmente somos 58 miembros y tenemos una personalidad jurídica con la
+      Fundación <a href="https://www.buenaventuracadiz.cl" target="_blank" rel="noopener noreferrer"> Buenaventura Cádiz
+        Patiño</a> a la cual todos pertenecemos.
+    </div>
   </div>
-  <div class="col" align="center" style="padding: 20px 0px 0px 0px; border: none;">
+  <div class="col">
     <img src="/bcp/image/logorl188.png" width="200" height="200" alt="Buenaventura Cadiz Patiño">
   </div>
 </div>
-<div class="row" style="padding: 20px 0px 0px 0px;">
-  <div class="col" align="justify" style="border: none;">
-    El acceso a los recursos están protegidos por clave. Es importante notar que el control de acceso se hace directamente con la 
-    <a href="https://www.mimasoneria.cl"  target="_blank" rel="noopener noreferrer" > Gran Logia de Chile  </a> 
-    por lo que el grado será que se tenga registrado en la Gran Logia. <br>
-    Todos los recursos monstrados están considerando el grado del QH:. si ud no pertenece a la orden, evite meterse a la pagina.
+<div class="home-logia">
+  <div class="row">
+    <div class="col">
+      El acceso a los recursos están protegidos por clave. Es importante notar que el control de acceso se hace
+      directamente con la
+      <a href="https://www.mimasoneria.cl" target="_blank" rel="noopener noreferrer"> Gran Logia de Chile</a>
+      por lo que el grado será que se tenga registrado en la Gran Logia. <br>
+      Todos los recursos monstrados están considerando el grado del QH:. si ud no pertenece a la orden, evite ingresar
+      al sitio.
+    </div>
   </div>
+</div>
+<div class="box-center-logia">
+  <img src="/bcp/image/simbolo.png" width="100" height="100" alt="Buenaventura Cadiz Patiño">
 </div>
 
 {% endblock %}

@@ -13,7 +13,10 @@ try:
     # Clases personales
     from security import Security, Cipher
     from check import Checker
-    from works import Works, Work
+    from works import Works
+    from work import Work
+    from dbwork import DbWork
+    from util import Util
 
 except ImportError:
     logging.error(ImportError)
@@ -128,7 +131,7 @@ def intranet_pdf(subpath):
         logging.info('Solicita Mostrar Documento: ' + str(subpath) + ', Length: ' + str(len(paths)) )
         if len(paths) == 3 :
             documents = Works()
-            data_doc, type_doc = documents.get_pdf_file(paths[0].strip())
+            data_doc, type_doc = documents.get_pdf_file(paths[0].strip(), paths[1].strip(), paths[2].strip())
             del documents
             if data_doc != None and type_doc != None :
                 data = {
@@ -174,12 +177,12 @@ def login_verify():
         del security
     logging.info('Usuario: ' + str(name_qh) + ' Username: ' + str(user) + ' Grado: ' + str(grade_qh) + ' Mantenedor: ' + str(maintainer) )
     if grade_qh > 0 and grade_qh <= 3 :
-        documents = Works()
-        works, programs = documents.get_works(grade_qh)
+        db = DbWork()
+        works, programs = db.get_works(grade_qh)
+        del db  
         if works != None and programs != None :
             lengthw = len(works) 
             lengthp = len(programs)
-        del documents  
     data = {
         'works' : works,
         'lengthw' : lengthw,
@@ -234,10 +237,12 @@ def intranet():
         return redirect('/bcp/login'), 302
 
     if grade_qh > 0 and grade_qh <= 3 :
-        documents = Works()
-        works, programs = documents.get_works(grade_qh)
-        del documents  
-        logging.info('There are ' + str(len(works) + len(programs)) + ' works at ' + str(get_name(grade_qh)) )
+        db = DbWork()
+        works, programs = db.get_works(grade_qh)
+        del db  
+        util = Util()
+        logging.info('There are ' + str(len(works) + len(programs)) + ' works at ' + str(grade_qh) + ' grade ' )
+        del util
     else :
         return redirect('/bcp/login'), 302
 
@@ -311,27 +316,31 @@ def more():
         del cipher
     else :
         return redirect('/bcp/login'), 302
-    grade_name = get_name(grade_qh)
+    util = Util()
+    grade_name = util.get_name(grade_qh)
+    del util
     if grade_name != None :
-        documents = Works()
-        works = documents.get_other_docs(grade_qh)
-        del documents  
+        bd = DbWork()
+        works = bd.get_additional_works(grade_qh)
+        del bd
+        work = Works()
+        work.process_drive_document(grade_qh)
+        del work
         if works != None:
             logging.info('Hay ' + str(len(works)) + ' documentos adicionales para grado ' + str(grade_qh) )
+        
+        data = {
+            'works' : works,
+            'length' : len(works),
+            'grade' : grade_name,
+            'name' : name_qh,
+            'maintainer' : maintainer,
+            'username' : user_name
+        }
     else :
         return redirect('/bcp/login'), 302
       
-    return render_template('more.html', grade=grade_name, documents=works, len=len(works), name=name_qh, maintainer=maintainer, username=user_name)
-
-def get_name(grade: int) :
-    if grade == 1 :
-        return 'Primer Grado'
-    elif grade == 2 :
-        return 'Segundo Grado'
-    elif grade == 3 :
-        return 'Tercer Grado'
-    else :
-        return None
+    return render_template('more.html', data=data )
 
 @app.route('/bcp/maintainer', methods=['GET'])
 def maintainer():
@@ -446,18 +455,30 @@ def add_work():
         logging.error(e)
         date = datetime.now()
         logging.info('Date: Now() ')
+
+    grade_doc : str = '1'
+    try :
+        if request.form['grade'] != None :
+            grade_doc = str(request.form['grade'])
+    except Exception as e :
+        logging.error(e)
+        grade_doc = '1'
     
+    logging.info('Form: ' + str(request.form) )
+
     work = Work(
         {
             'id' : -1,
             'title' : str(request.form['title']),
             'author' : 'QH:. ' + str(request.form['author']),
             'namefile' : str(request.form['namefile']),
-            'grade' : int(request.form['grade']),
+            'grade' : int(grade_doc),
             'type' : str(request.form['type']),
             'date' : date.strftime('%Y-%m-%d %H:%M:%S'),
             'description' : str(request.form['description']),
             'md5sum' : str(request.form['md5doc']),
+            'source' : 'S3',
+            # 'url': str(request.form['url']),
             'small_photo' : None,
         }
     )
@@ -479,7 +500,7 @@ def add_work():
                 documents = Works()
                 success = documents.save( work )
                 works : list = []
-                if success :
+                if success != None :
                     works = documents.get_all_docs()
                 else :
                     msg = 'Error agregando archivo, intente nuevamente'
@@ -515,8 +536,9 @@ def youtube():
         del cipher
     else :
         return redirect('/bcp/login'), 302
-
-    grade_name = get_name(grade_qh)
+    util = Util()
+    grade_name = util.get_name(grade_qh)
+    del util
     if grade_name == None :
         return redirect('/bcp/login'), 302
     return render_template('youtube.html', grade=grade_name, name=name_qh, maintainer=maintainer, username=user_name)
@@ -624,13 +646,23 @@ def stylescss(stylesfile):
 @csrf.exempt
 def show_static_file(file_path) :
     values = file_path.split('/')
+    name_file : str = None
     if len(values) > 1 :
-        file_path = values[0]
-        name = values[1]
+        name_file = values[len(values) - 1]
+        file_path = file_path.replace(name_file, '')
     else :
-        name = file_path
+        name_file = file_path
     file_path = os.path.join(ROOT_DIR, 'static/' + str(file_path))
-    return send_from_directory(file_path, str(name))
+    logging.info("Static File: " + str( file_path ) )
+    if not os.path.exists(file_path + str(name_file)) :
+        logging.info('Archivo no encontrado: ' + str( file_path ) + str(name_file) )
+        work = Works()
+        success = work.get_drive_document(file_path, name_file)
+        del work
+        if success :
+            logging.info('Archivo ' + str( file_path ) + str(name_file) + ' descargado...'  )
+
+    return send_from_directory(file_path, str(name_file))
 
 # ===============================================================================
 # Favicon
