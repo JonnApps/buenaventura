@@ -13,7 +13,10 @@ try:
     # Clases personales
     from security import Security, Cipher
     from check import Checker
-    from works import Works, Work
+    from works import Works
+    from work import Work
+    from dbwork import DbWork
+    from util import Util
 
 except ImportError:
     logging.error(ImportError)
@@ -174,12 +177,12 @@ def login_verify():
         del security
     logging.info('Usuario: ' + str(name_qh) + ' Username: ' + str(user) + ' Grado: ' + str(grade_qh) + ' Mantenedor: ' + str(maintainer) )
     if grade_qh > 0 and grade_qh <= 3 :
-        documents = Works()
-        works, programs = documents.get_works(grade_qh)
+        db = DbWork()
+        works, programs = db.get_works(grade_qh)
+        del db  
         if works != None and programs != None :
             lengthw = len(works) 
             lengthp = len(programs)
-        del documents  
     data = {
         'works' : works,
         'lengthw' : lengthw,
@@ -234,10 +237,12 @@ def intranet():
         return redirect('/bcp/login'), 302
 
     if grade_qh > 0 and grade_qh <= 3 :
-        documents = Works()
-        works, programs = documents.get_works(grade_qh)
-        del documents  
-        logging.info('There are ' + str(len(works) + len(programs)) + ' works at ' + str(get_name(grade_qh)) )
+        db = DbWork()
+        works, programs = db.get_works(grade_qh)
+        del db  
+        util = Util()
+        logging.info('There are ' + str(len(works) + len(programs)) + ' works at ' + str(grade_qh) + ' grade ' )
+        del util
     else :
         return redirect('/bcp/login'), 302
 
@@ -311,11 +316,15 @@ def more():
         del cipher
     else :
         return redirect('/bcp/login'), 302
-    grade_name = get_name(grade_qh)
+    util = Util()
+    grade_name = util.get_name(grade_qh)
+    del util
     if grade_name != None :
+        bd = DbWork()
+        works = bd.get_additional_works(grade_qh)
+        del bd
         work = Works()
-        works = work.get_additional_works(grade_qh)
-        work.process_drive_document(str(grade_qh))
+        work.process_drive_document(grade_qh)
         del work
         if works != None:
             logging.info('Hay ' + str(len(works)) + ' documentos adicionales para grado ' + str(grade_qh) )
@@ -332,16 +341,6 @@ def more():
         return redirect('/bcp/login'), 302
       
     return render_template('more.html', data=data )
-
-def get_name(grade: int) :
-    if grade == 1 :
-        return 'Primer Grado'
-    elif grade == 2 :
-        return 'Segundo Grado'
-    elif grade == 3 :
-        return 'Tercer Grado'
-    else :
-        return None
 
 @app.route('/bcp/maintainer', methods=['GET'])
 def maintainer():
@@ -537,8 +536,9 @@ def youtube():
         del cipher
     else :
         return redirect('/bcp/login'), 302
-
-    grade_name = get_name(grade_qh)
+    util = Util()
+    grade_name = util.get_name(grade_qh)
+    del util
     if grade_name == None :
         return redirect('/bcp/login'), 302
     return render_template('youtube.html', grade=grade_name, name=name_qh, maintainer=maintainer, username=user_name)
@@ -646,23 +646,23 @@ def stylescss(stylesfile):
 @csrf.exempt
 def show_static_file(file_path) :
     values = file_path.split('/')
-    name : str = None
+    name_file : str = None
     if len(values) > 1 :
-        name = values[len(values) - 1]
-        file_path = file_path.replace(name, '')
+        name_file = values[len(values) - 1]
+        file_path = file_path.replace(name_file, '')
     else :
-        name = file_path
+        name_file = file_path
     file_path = os.path.join(ROOT_DIR, 'static/' + str(file_path))
     logging.info("Static File: " + str( file_path ) )
-    if not os.path.exists(file_path + str(name)) :
-        logging.info('Archivo no encontrado: ' + str( file_path ) + str(name) )
+    if not os.path.exists(file_path + str(name_file)) :
+        logging.info('Archivo no encontrado: ' + str( file_path ) + str(name_file) )
         work = Works()
-        success = work.get_drive_document(file_path, name)
+        success = work.get_drive_document(file_path, name_file)
         del work
         if success :
-            logging.info('Archivo ' + str( file_path ) + str(name) + ' descargado...'  )
+            logging.info('Archivo ' + str( file_path ) + str(name_file) + ' descargado...'  )
 
-    return send_from_directory(file_path, str(name))
+    return send_from_directory(file_path, str(name_file))
 
 # ===============================================================================
 # Favicon
