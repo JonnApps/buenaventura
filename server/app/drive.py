@@ -72,7 +72,7 @@ class Drive() :
             resp = None
             url = self.url_base + '/docs/drive/list'
             m1 = time.monotonic()
-            logging.info(name_thread + 'URL: ' + url )
+            logging.info(name_thread + 'URL: ' + url + ' Request: ' + str(data_json) )
             resp = requests.post(url, data = json.dumps({'data': data_json, 'type': 'clear'}), headers = self.headers, timeout = 15)
             logging.info(name_thread + 'Response[' + str(resp.status_code) + '] ' + str( time.monotonic() - m1 )  + ' seg' )
             if resp.status_code == 200:
@@ -159,7 +159,7 @@ class Drive() :
                     {
                         "filter_name": "mimeType",
                         "comparation": "=",
-                        "filter_value": str(self.get_mime_type(name_file)),
+                        "filter_value": str(self.util.get_mime_type(name_file)),
                     },
                     {
                         "filter_name": "title",
@@ -185,7 +185,7 @@ class Drive() :
                     logging.info('Documento encontrado de ' + str(data_file['size_bytes']) + ' bytes' + ' type: ' + str(data_file['type']) ) 
                     data_response = data_file['file_b64']
                     if str(data_file['type']).lower().strip().find('application/pdf') >= 0 :
-                        success = self.util.save_doc_file( data_file['md5']+self.get_extension(data_file['title']), data_response )
+                        success = self.util.save_doc_file( data_file['md5']+self.util.get_extension(data_file['title']), data_response )
                     else :
                         logging.info('Guarda ' + name_file + ' en: ' + path_to_save )
                         file_path = os.path.join('/tmp', str(name_file))

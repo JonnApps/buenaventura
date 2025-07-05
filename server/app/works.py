@@ -94,7 +94,7 @@ class Works() :
                 logging.info('Documento \"' + doc.namefile + '\" es de Drive')
                 folder = self.util.get_folders(grade_doc)[0]
                 if self.drive.get_drive_document('/tmp', doc, folder) == True :
-                    path_file = doc.md5sum + self.uitl.get_extension(doc.namefile)
+                    path_file = doc.md5sum + self.util.get_extension(doc.namefile)
                     data_base64 = self.util.file_exists(path_file)
                     mime_type = self.util.get_mime_type(doc.namefile)
             else :

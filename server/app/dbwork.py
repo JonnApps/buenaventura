@@ -56,33 +56,25 @@ class DbWork() :
     # ==============================================================================
     # obtiene los trabajos que se han registrado en la base de datos como los que vienen
     # y los que son presentes esta semana
+    #SELECT column1, column2, ... FROM your_table WHERE conditions ORDER BY some_column LIMIT limit OFFSET (page - 1) * limit;
     # ==============================================================================
-    def get_works(self, grade_qh : int ) :
-        works = []
-        plans = []
-        aux = []
+    def get_works(self, grade_qh : int, page : int, limit : int, type_work : str = 'WORK' ) :
+        works : list = []
         try :
-            logging.info('Se obtienen los trabajos del grado: ' + str(grade_qh) ) 
+            offset : int = (page - 1) * limit
+            logging.info('Se obtienen los trabajos ' + type_work + ' del grado ' + str(grade_qh) + ' Page: ' + str(page) + ' LIMIT ' + str(limit) + ' OFFSET ' + str(offset) ) 
             if self.is_connect() :
                 cursor = self.db.cursor()
-                sql = """select * from works w where grade <= %s and type in( 'WORK','PROGRAM' ) order by w.date desc"""
-                cursor.execute(sql, str(grade_qh) )
+                sql = """select * from works w where grade <= %s and type = %s order by w.date desc limit %s offset %s"""
+                cursor.execute(sql, (str(grade_qh), type_work, limit, offset, ) )
                 results = cursor.fetchall()
                 for row in results:
-                    doc = Work( row )
-                    if doc.type_work == 'WORK' :
-                        works.append(doc)
-                    if doc.type_work == 'PROGRAM' :
-                        aux.append(doc)
+                    works.append( Work( row ))
             else :
                 logging.error('No hay conexion a la BD')
         except Exception as e:
             print("ERROR BD:", e)
-        if aux != None and len(aux) :
-            length = len(aux)
-            for i in range(0, length ):
-                plans.append(aux.pop()) 
-        return works, plans
+        return works
     # ==============================================================================
     # obtiene los trabajos que se han registrado en la base de datos como material 
     # adicional pero tambien los que se han subido a drive compartido

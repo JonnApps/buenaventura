@@ -102,7 +102,7 @@ def checkProccess():
     return jsonify(json), status
 
 # ===============================================================================
-# INTRANET
+# Muesta documento seleccionado para ver. Antes valida el grado de la persona
 # ===============================================================================
 @app.route('/bcp/intranet/show/<path:subpath>', methods=['GET'])
 @csrf.exempt
@@ -110,7 +110,8 @@ def intranet_pdf(subpath):
     user_name = None
     data = {
         'data'    : None,
-        'type'    : 'application/pdf'
+        'type'    : 'application/pdf',
+        'name_file': 'no_info.pdf'
     }
     name_qh = None
     maintainer = False
@@ -136,7 +137,8 @@ def intranet_pdf(subpath):
             if data_doc != None and type_doc != None :
                 data = {
                     'data'    : data_doc,
-                    'type'    : type_doc
+                    'type'    : type_doc,
+                    'name_file': str(paths[2].strip())
                 }
     return render_template( 'show.html', doc=data, name=name_qh, maintainer=maintainer, user_name=user_name), 200
 
@@ -178,7 +180,8 @@ def login_verify():
     logging.info('Usuario: ' + str(name_qh) + ' Username: ' + str(user) + ' Grado: ' + str(grade_qh) + ' Mantenedor: ' + str(maintainer) )
     if grade_qh > 0 and grade_qh <= 3 :
         db = DbWork()
-        works, programs = db.get_works(grade_qh)
+        works = db.get_works(grade_qh, 1, 5)
+        programs = db.get_works(grade_qh, 1, 5, 'PROGRAM')
         del db  
         if works != None and programs != None :
             lengthw = len(works) 
@@ -191,7 +194,8 @@ def login_verify():
         'grade' : grade_qh,
         'name' : name_qh,
         'maintainer' : bool(maintainer),
-        'username' : username
+        'username' : username,
+        'current_page' : 1
     }
     logging.info('Data for intranet: ' + str(data) )
 
@@ -236,9 +240,14 @@ def intranet():
     else :
         return redirect('/bcp/login'), 302
 
+    # Se implementa paginaci'on
+    page : int = request.args.get('page', 1, type=int) 
+    limit : int = request.args.get('limit', 5, type=int)
+
     if grade_qh > 0 and grade_qh <= 3 :
         db = DbWork()
-        works, programs = db.get_works(grade_qh)
+        works = db.get_works(grade_qh, page, limit)
+        programs = db.get_works(grade_qh, page, limit, 'PROGRAM')
         del db  
         util = Util()
         logging.info('There are ' + str(len(works) + len(programs)) + ' works at ' + str(grade_qh) + ' grade ' )
@@ -254,7 +263,8 @@ def intranet():
         'grade' : grade_qh,
         'name' : name_qh,
         'maintainer' : maintainer,
-        'username' : user_name
+        'username' : user_name,
+        'current_page' : page
     }
     return render_template('intranet.html', data = data )
 
