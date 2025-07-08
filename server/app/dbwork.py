@@ -73,8 +73,22 @@ class DbWork() :
             else :
                 logging.error('No hay conexion a la BD')
         except Exception as e:
-            print("ERROR BD:", e)
+            print("ERROR get_works():", e)
         return works
+
+    def update_past_works(self, ) :
+        try :
+            logging.info('Se actualizan los trabajos ya presentados...' ) 
+            if self.is_connect() :
+                cursor = self.db.cursor()
+                sql = """update works w set type = 'WORK' where w.type='PROGRAM' and w.date < now()"""
+                cursor.execute(sql)
+                value = self.db.commit()
+                logging.info('Se actualizan ' + str(value) + ' trabajos' ) 
+            else :
+                logging.error('No hay conexion a la BD')
+        except Exception as e:
+            print("ERROR update_past_works():", e)
     # ==============================================================================
     # obtiene los trabajos que se han registrado en la base de datos como material 
     # adicional pero tambien los que se han subido a drive compartido

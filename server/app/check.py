@@ -5,6 +5,7 @@ try:
     import time
     import requests
     import json
+    from dbwork import DbWork
 
 except ImportError:
 
@@ -20,19 +21,16 @@ class Checker() :
         headers = { 'authorization': 'Basic Y2hlY2s6Y2hlY2sxMjMj','accept-encoding': 'gzip, deflate','content-length': '0'}
         status = 500
         logging.info("Check Conection Status to Jonnattan Server" )
-        data_response = {'message': 'Error interno Gw' }
+        data_response = {'message': 'Error interno' }
         try :
-            resp = None
-            logging.info("POST To URL: " + url )
-            resp = requests.get(url, data = json.dumps({}), headers = headers, timeout = 40)
-            status = resp.status_code
-            logging.info("HTTP Response: " + str(resp.status_code) )
-            if resp.status_code == 200 :
-                data_response = {'message': 'Conexion Ok' }
-            
+            db = DbWork()
+            db.update_past_works()
+            del db             
+            data_response = {'message': 'Todo Ok' }
+            status = 200
         except Exception as e:
             print("ERROR POST:", e)
-        diff = time.monotonic_ns() - m1;
-        logging.info("Response in " + str(diff) + " ms")
+        diff = time.monotonic() - m1;
+        logging.info("Response in " + str(diff) + " sec")
         
         return data_response, status

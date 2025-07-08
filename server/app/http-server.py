@@ -64,14 +64,6 @@ ROOT_DIR = os.path.dirname(__file__)
 #===============================================================================
 # Redirige
 #===============================================================================
-@app.route('/', methods=['GET', 'POST'])
-@csrf.exempt
-def index():
-    return redirect('/info'), 302
-
-#===============================================================================
-# Redirige
-#===============================================================================
 @app.route('/<path:subpath>', methods=('GET', 'POST'))
 @csrf.exempt
 def processOtherContext( subpath ):
@@ -89,6 +81,47 @@ def infoJonnaProccess():
         "Telefono": "(+56) 9 9211 6678",
         "Valle":"Viña del Mar"
     })
+
+#===============================================================================
+# Redirige
+#===============================================================================
+@app.route('/', methods=['GET'])
+@csrf.exempt
+def index():
+    return redirect('/bcp/home'), 302
+
+@app.route('/bcp/home', methods=['GET'])
+def home():
+    cookie = request.cookies.get('SESION_RL')
+    data = {}
+    if cookie != None :
+        cipher = Cipher()
+        data_str = cipher.aes_decrypt(cookie)
+        del cipher
+        datos = data_str.split('&')
+        if len(datos) == 4 :
+            data = {
+                'user_name' : str(datos[0].strip()),
+                'grade_qh': int(datos[1].strip()),
+                'name_qh': str(datos[2].strip()),
+                'maintainer': bool(datos[3].strip()),
+            }
+            logging.info('User at the cookie: ' + str(data['user_name']) + ', grade ' + str(data['grade_qh']) + ', maintainer ' + str(data['maintainer']) )
+    return render_template( 'logia.html', data=data )
+# ===============================================================================
+# LOGIA
+# ===============================================================================
+@app.route('/bcp/home/<path:subpath>', methods=['POST','GET','PUT'])
+def rl_aniversario(subpath):
+    path = str(subpath)
+    logging.info('Solicita Path: /' + path)
+    if path == 'buenaventura.png' :
+        file_path = os.path.join(ROOT_DIR, 'static')
+        file_path = os.path.join(file_path, 'image')
+        return send_from_directory(file_path, 'buenaventura.png')
+    else :
+        return render_template( 'logia.html', select=path )
+
 
 #===============================================================================
 # Se checkea el estado del servidor completo para reportar
@@ -554,37 +587,8 @@ def youtube():
     return render_template('youtube.html', grade=grade_name, name=name_qh, maintainer=maintainer, username=user_name)
 
 # ===============================================================================
-# LOGIA
-# ===============================================================================
-@app.route('/bcp/home/<path:subpath>', methods=['POST','GET','PUT'])
-def rl_aniversario(subpath):
-    path = str(subpath)
-    logging.info('Solicita Path: /' + path)
-    if path == 'buenaventura.png' :
-        file_path = os.path.join(ROOT_DIR, 'static')
-        file_path = os.path.join(file_path, 'image')
-        return send_from_directory(file_path, 'buenaventura.png')
-    else :
-        return render_template( 'logia.html', select=path )
-# ===============================================================================
-@app.route('/bcp/home', methods=['GET'])
-def home():
-    cookie = request.cookies.get('SESION_RL')
-    data = {}
-    if cookie != None :
-        cipher = Cipher()
-        data_str = cipher.aes_decrypt(cookie)
-        del cipher
-        datos = data_str.split('&')
-        if len(datos) == 4 :
-            data = {
-                'user_name' : str(datos[0].strip()),
-                'grade_qh': int(datos[1].strip()),
-                'name_qh': str(datos[2].strip()),
-                'maintainer': bool(datos[3].strip()),
-            }
-            logging.info('User at the cookie: ' + str(data['user_name']) + ', grade ' + str(data['grade_qh']) + ', maintainer ' + str(data['maintainer']) )
-    return render_template( 'logia.html', data=data )
+
+
 # ===============================================================================
 @app.route('/bcp/aniversario', methods=['POST','GET','PUT'])
 def aniversario():
