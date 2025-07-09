@@ -6,6 +6,7 @@ try:
     import os
     import time
     from datetime import datetime
+    import pytz 
 
 except ImportError:
     logging.error(ImportError)
@@ -25,6 +26,7 @@ class Work() :
     namegr : str = None
     date : str = None
     date_hm : str = None
+    local_date : str = None
     type_work : str = None
     description : str = None
     small_photo : str = None
@@ -61,10 +63,16 @@ class Work() :
             self.namegrade = 'Un dios'
             self.namegr = '33 avo Grado'
 
-        aux = str(row['date'])
-        my_date = datetime.strptime(aux, '%Y-%m-%d %H:%M:%S')
-        self.date = my_date.strftime('%d/%m/%Y')
-        self.date_hm = my_date.strftime('%d/%m/%Y %H:%M')
+        self.fill_dates(str(row['date']))
+
+    def fill_dates(self, str_date: str ) :
+        utc_datetime = datetime.strptime(str_date, '%Y-%m-%d %H:%M:%S')
+        self.date = utc_datetime.strftime('%d/%m/%Y')
+        self.date_hm = utc_datetime.strftime('%d/%m/%Y %H:%M')
+        # hora local
+        chile_timezone = pytz.timezone('America/Santiago')
+        chilean_time = utc_datetime.astimezone(chile_timezone)
+        self.local_date = chilean_time.strftime('%d/%m/%Y %H:%M')
 
     def __del__(self):
         self.namefile = None
@@ -83,3 +91,4 @@ class Work() :
         self.namegrother = None
         self.source = None
         self.url = None
+        self.local_date = None

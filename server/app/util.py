@@ -68,30 +68,44 @@ class Util() :
             print("ERROR Contructor Util() :", e)
             
     # ==============================================================================
-    def notify(self, title : str, grade : str, date : str, path : str = 'mail') :
+    def notify(self, work : Work, path : str = 'mail') :
         try :
-            grade_str : str = str(grade).lower().strip()
-            logging.info('Notificando documento de ' + str(grade_str))
+            date_utc = datetime.now()
+            str_date : str = datetime.strftime(date_utc, '%d/%m/%Y')
+            date_work : datetime = datetime.strptime(work.date_hm, '%d/%m/%Y %H:%M')
+            str_temp : str = ' que ha sido'
+            if date_work > date_utc :
+                str_temp = ' que será'
+            str_tipo : str = 'material adicional'
+            if work.type_work == 'PROGRAM' or work.type_work == 'WORK' :
+                str_tipo = 'trabajo'
 
-            body : str = 'El trabajo titulado: ' + str(title) + ' a quedado disponible con fecha: ' + str(date) + '\nPara descargarlo visita https://logia.buenaventuracadiz.cl' 
+            grade_str : str = str(work.grade).lower().strip()
 
-            subject : str = '[Aviso] Nuevo documento de '
+            body : str = 'QQHH:.\nEl ' + str_tipo + ' titulado \"' + str(work.title) + '\" de ' + str(work.namegr)
+            
+            if str_tipo == 'trabajo' :
+                body += ', realizado por el ' + str(work.author) + ' y ' + str_temp
+                body += ' presentado el día ' + str(work.date) 
+            
+            body += ' desde hoy se encuentra disponible para su visualización y/o descarga en el intranet.'
+            body += '\nPor favor visita https://logia.buenaventuracadiz.cl para más información.' 
+            body += '\n\nUn TAF'
+
+            subject : str = '[Aviso] Nuevo Documento de ' + str(work.namegrade) + ' Disponible'
             mail : str = self.mail_aprendices
 
             if grade_str.find('1') > -1 :
                 mail = self.mail_aprendices
-                subject += 'aprendiz'
             elif grade_str.find('2') > -1 :
                 mail = self.mail_companeros
-                subject += 'compañero'
             elif grade_str.find('3') > -1 :
                 mail = self.mail_maestros
-                subject += 'maestro'
             else :
                 logging.info('Se envia a jonnattan solo !!!')
                 mail = self.mail_aprendices
 
-            subject += ' disponible'
+            logging.info('Notificando:  ' + str(subject))
 
             data = {
                 'to' : mail,

@@ -10,6 +10,7 @@ try:
     from flask_cors import CORS
     from flask_wtf.csrf import CSRFProtect
     from flask import Flask, render_template, make_response, request, redirect, jsonify, send_from_directory
+    import pytz 
     # Clases personales
     from security import Security, Cipher
     from check import Checker
@@ -402,9 +403,9 @@ def maintainer():
         del cipher
         datos = data_str.split('&')
         if len(datos) == 4 :
-            documents = Works()
-            works = documents.get_all_docs()
-            del documents  
+            bd = DbWork()
+            works = bd.get_all_docs()
+            del bd  
             data = {
                 'user_name' : str(datos[0].strip()),
                 'grade_qh': int(datos[1].strip()),
@@ -439,7 +440,7 @@ def del_work( id ):
             maintainer = bool(datos[3].strip())
             logging.info('User at the cookie: ' + user_name + ', grade ' + str(grade_qh) + ', maintainer ' + str(maintainer) )
             if maintainer and grade_qh == 3 :
-                documents = Works()
+                documents = DbWork()
                 success = documents.delete( int(id) )
                 works : list = []
                 if success :
@@ -462,8 +463,8 @@ def del_work( id ):
 @csrf.exempt
 def upload_work(): 
     cookie = request.cookies.get('SESION_RL')
-    data_response = {'md5' : '', 'filename' : ''}
-    status_code = 200
+    data_response = {'md5' : '', 'filename' : '', 'error' : 'No autorizado'}
+    status_code = 500
     if cookie != None :
         cipher = Cipher()
         data_str = cipher.aes_decrypt(cookie)
@@ -480,23 +481,26 @@ def upload_work():
             data_response, status_code = work.upload(request)
             del work
             logging.info('User at the cookie: ' + str(data_cookie['user_name']) + ', grade ' + str(data_cookie['grade_qh']) + ', maintainer ' + str(data_cookie['maintainer']) )
+    else :
+        status_code = 409
     return jsonify(data_response), status_code
 
 @app.route('/bcp/work/add', methods=['POST'])
 def add_work(): 
     msg : str = 'Archivo agregado correctamente'  
-    date : datetime = None
+    date_utc : datetime = None
     try :
         d = str(request.form['date'])
         h = str(request.form['hour'])
         if len(h) == 0 :
             h = '00:00'
         date_str = d + ' ' + h + ':00'
-        date = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
-        logging.info('Date: ' + str(date))
+        naive_datetime = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+        date_utc = pytz.utc.localize(naive_datetime)
+        logging.info('Date: ' + str(date_utc))
     except Exception as e :
         logging.error(e)
-        date = datetime.now()
+        date_utc = datetime.now()
         logging.info('Date: Now() ')
 
     grade_doc : str = '1'
@@ -517,11 +521,11 @@ def add_work():
             'namefile' : str(request.form['namefile']),
             'grade' : int(grade_doc),
             'type' : str(request.form['type']),
-            'date' : date.strftime('%Y-%m-%d %H:%M:%S'),
+            'date' : date_utc.strftime('%Y-%m-%d %H:%M:%S'),
             'description' : str(request.form['description']),
             'md5sum' : str(request.form['md5doc']),
             'source' : 'S3',
-            # 'url': str(request.form['url']),
+            'url': 'no existe',
             'small_photo' : None,
         }
     )
@@ -540,14 +544,18 @@ def add_work():
             maintainer = bool(datos[3].strip())
             logging.info('User at the cookie: ' + user_name + ', grade ' + str(grade_qh) + ', maintainer ' + str(maintainer) )
             if maintainer and grade_qh == 3 :
-                documents = Works()
-                success = documents.save( work )
+                db = DbWork()
+                work_added, new_doc = db.save( work )
                 works : list = []
-                if success != None :
-                    works = documents.get_all_docs()
+                if work_added != None :
+                    works = db.get_all_docs()
+                    if new_doc == True :                       
+                        util = Util()
+                        util.notify( work_added )
+                        del util
                 else :
                     msg = 'Error agregando archivo, intente nuevamente'
-                del documents  
+                del db  
                 data = {
                     'user_name' : user_name,
                     'grade_qh': grade_qh,

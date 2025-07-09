@@ -53,7 +53,7 @@
 {% if data.grade >=1 and data.grade <=3 %} <div class="container">
   <div class="row">
     <div class="col">
-      <h4>Próximas Fechas:</h4>
+      <h4>Próximas Planchas de Tenidas:</h4>
       <table class="table">
         <thead>
           <tr style="text-align:left; background-color: rgb(124, 163, 142);">
@@ -80,7 +80,7 @@
             </th>
             <td>{{ data.programs[i].author }}</td>
             <td>{{ data.programs[i].namegr }}</td>
-            <td>{{ data.programs[i].date_hm }} Hrs</td>
+            <td>{{ data.programs[i].local_date }} Hrs</td>
           </tr>
           {%endfor%}
         </tbody>
@@ -119,7 +119,7 @@
             </th>
             <td>{{data.works[i].author}}</td>
             <td>{{data.works[i].namegrade}}</td>
-            <td>{{data.works[i].date}}</td>
+            <td>{{data.works[i].local_date}} hrs</td>
           </tr>
           {%endfor%}
         </tbody>

@@ -103,46 +103,16 @@ class Drive() :
                                 'url' : str(doc['alternateLink']),
                                 'date': date.strftime('%Y-%m-%d %H:%M:%S'),
                             } )
-                            if self.db.save(document) != None :
+                            w, new = self.db.save(document)
+                            if w != None and new == True :
                                 logging.info(name_thread + 'Documento nuevo guardado, se notifica ' )
-                                self.util.notify( str(document.title), str(document.grade), str(document.date) )
+                                self.util.notify( w )
         except Exception as e:
             print(name_thread + "ERROR load_drive_docs():", e)
 
     def process_drive_document(self, grade: str ) :
         self.th = threading.Thread(target=self.load_drive_docs, args=( grade ), name='th', daemon=True)
         self.th.start()
-
-        data_response = None
-        mime_type = None
-        try :
-            logging.info('Solicita Buscar Documento ID: ' + str(data_json)) 
-            resp = None
-            url = self.url_base + '/docs/s3/read'
-            m1 = time.monotonic()
-            logging.info('URL Post: ' + url )
-            resp = requests.post(url, data = json.dumps(data_json), headers = self.headers, timeout = 15)
-            logging.info('Response ' + str( time.monotonic() - m1 )  + ' seg' )
-            if resp.status_code == 200 :
-                data_response = resp.json()
-                data_file = None
-                try :
-                    data_file = data_response['data']
-                except Exception as e:
-                    data_file = None
-                if data_file != None :
-                    logging.info('Documento encontrado de ' + str(data_file['size_bytes']) + ' bytes' + ' type: ' + str(data_file['type']) ) 
-                    # data_response = base64.b64decode(data_file['file_b64'])
-                    data_response = data_file['file_b64']
-                    mime_type = data_file['type']
-                    # se guarda el documento localmente para ser m'as rapido la carga
-                    self.util.save_doc_file( data_file['md5'] + self.util.get_extension(data_json['data']['name_file']), data_response )
-                else :
-                    logging.error('Respuesta NULA ' )
-        except Exception as e:
-            print("ERROR get_document():", e)
-        
-        return data_response, mime_type
 
     def get_drive_document(self, path_to_save : str, doc, folder : str ) :
         success = False

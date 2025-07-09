@@ -83,8 +83,8 @@ class DbWork() :
                 cursor = self.db.cursor()
                 sql = """update works w set type = 'WORK' where w.type='PROGRAM' and w.date < now()"""
                 cursor.execute(sql)
-                value = self.db.commit()
-                logging.info('Se actualizan ' + str(value) + ' trabajos' ) 
+                self.db.commit()
+                logging.info('Actualización OK...' ) 
             else :
                 logging.error('No hay conexion a la BD')
         except Exception as e:
@@ -115,7 +115,7 @@ class DbWork() :
         try :
             if self.is_connect() :
                 cursor = self.db.cursor()
-                sql = """select * from works w where grade <= %s order by w.date desc"""
+                sql = """select * from works w where grade <= %s order by w.id desc"""
                 cursor.execute(sql, grade_qh )
                 results = cursor.fetchall()
                 for row in results:
@@ -129,6 +129,7 @@ class DbWork() :
     # ==============================================================================
     def save(self, work ) :
         saved : Work = None
+        is_new : bool = False
         try :
             if self.is_connect() :
                 cursor = self.db.cursor()
@@ -150,16 +151,17 @@ class DbWork() :
                         sql = """update works set namefile = %s, title = %s, author = %s, grade = %s, date = %s, type = %s, description = %s, small_photo = %s, md5sum = %s, source = %s where id = %s"""
                         cursor.execute(sql, ( work.namefile, work.title, work.author, str(work.grade), date.strftime('%Y-%m-%d %H:%M:%S'), work.type_work, work.description, small_photo, work.md5sum, work.source, str(work.id) ) )
                         self.db.commit()
-                        success = True
+                        is_new = False
                 else:
                     logging.info('Insertando el trabajo: ' + work.namefile )
                     sql = """insert into works (namefile, title, author, grade, date, type, description, small_photo, md5sum, source) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
                     cursor.execute(sql, ( work.namefile, work.title, work.author, str(work.grade), date.strftime('%Y-%m-%d %H:%M:%S'), work.type_work, work.description, small_photo, work.md5sum, work.source ) )
                     self.db.commit()
+                    is_new = True
                 saved = self.search(work.md5sum, work.source)  
         except Exception as e:
                 print("ERROR save():", e)
-        return saved
+        return saved, is_new
     # ==============================================================================
     # Se obtiene el objeto de la base de datos con el campo md5sum y fuente
     # ==============================================================================

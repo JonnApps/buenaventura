@@ -149,10 +149,10 @@
         <thead>
           <tr style="text-align:left; background-color: rgb(124, 163, 142);">
             <th scope="col">Trabajo</th>
-            <th scope="col">Autor</th>
             <th scope="col">Grado</th>
+            <th scope="col">Autor</th>
             <th scope="col">Tipo</th>
-            <th scope="col">Archivo</th>
+            <th scope="col">Fuente</th>
             <th scope="col">Fecha - Hora</th>
             <th scope="col"> </th>
           </tr>
@@ -160,17 +160,18 @@
         <tbody>
           {%for i in range(0, data.length)%}
           <tr>
-            <th scope="row">
+            <td>
               <a class="nav-link active" aria-current="page" data-toggle="tooltip" data-placement="bottom"
                 title="{{data.works[i].description}}"
-                href="/bcp/intranet/show/{{data.works[i].grade}}/{{data.works[i].namefile}}">
+                href="/bcp/intranet/show/{{data.works[i].id}}/{{data.works[i].grade}}/{{data.works[i].namefile}}">
                 {{data.works[i].title }} </a>
-            </th>
+            </td>
+            <td>{{ data.works[i].grade }}</td>
             <td>{{ data.works[i].author }}</td>
-            <td>{{ data.works[i].namegrade }}</td>
-            <td>{{ data.works[i].type }}</td>
-            <td>{{ data.works[i].namefile }}</td>
-            <td>{{ data.works[i].date_hm }}</td>
+            <td>{{ data.works[i].type_work }}</td>
+            <td>{{ data.works[i].source }}</td>
+            <!-- td>{{ data.works[i].date_hm }}</td -->
+             <td><span>{{data.works[i].local_date}}</span></td>
             <td><a href="/bcp/work/del/{{data.works[i].id}}"><svg xmlns="http://www.w3.org/2000/svg" width="16"
                   height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
                   <path
